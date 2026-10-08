@@ -1,0 +1,2079 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Artificial Neural Networks — Unit IV · Soft Computing · Group 12</title>
+<style>
+/* ============================================================
+   THEME
+============================================================ */
+:root{
+  --bg:#05070d;
+  --ink:#eef4ff; --ink2:#9db1d6; --ink3:#5f6f8c;
+  --cyan:#59e2ff; --cyan-soft:rgba(89,226,255,.14);
+  --violet:#b79cff; --violet-soft:rgba(183,156,255,.14);
+  --blue:#7fb3ff;  --teal:#5ee0c4;
+  --line:rgba(146,176,224,.15);
+  --panel:rgba(14,21,38,.55);
+  --panel2:rgba(10,16,30,.5);
+  --glow-c:rgba(89,226,255,.35);
+  --glow-v:rgba(183,156,255,.35);
+  --sans:'Inter','SF Pro Display','Segoe UI',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;
+  --mono:'SF Mono','Cascadia Code','JetBrains Mono',ui-monospace,Menlo,Consolas,'Liberation Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+body{
+  font-family:var(--sans);color:var(--ink);background:
+    radial-gradient(1100px 750px at 72% -8%,rgba(36,60,120,.24),transparent 60%),
+    radial-gradient(900px 700px at -8% 108%,rgba(84,52,148,.17),transparent 60%),
+    var(--bg);
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+/* ============================================================
+   BACKGROUND LAYERS  (canvas + grid + vignette + cursor glow)
+============================================================ */
+#bg{position:fixed;inset:0;z-index:0}
+#gridoverlay{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background-image:linear-gradient(rgba(146,176,224,.045) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(146,176,224,.045) 1px,transparent 1px);
+  background-size:54px 54px;
+  -webkit-mask-image:radial-gradient(ellipse at center,#000 25%,transparent 72%);
+  mask-image:radial-gradient(ellipse at center,#000 25%,transparent 72%);}
+#vignette{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:radial-gradient(ellipse at center,transparent 52%,rgba(3,5,10,.55) 100%);}
+#cglow{position:fixed;width:560px;height:560px;margin:-280px 0 0 -280px;border-radius:50%;
+  pointer-events:none;z-index:30;mix-blend-mode:screen;opacity:0;transition:opacity .6s;
+  background:radial-gradient(circle,rgba(89,226,255,.075),rgba(89,226,255,0) 62%);}
+/* ============================================================
+   LAYOUT — deck & slides
+============================================================ */
+#deck{position:fixed;inset:0;z-index:2;overflow-y:auto;overflow-x:hidden;
+  scroll-snap-type:y proximity;scrollbar-width:none;overscroll-behavior:contain}
+#deck::-webkit-scrollbar{display:none}
+.slide{min-height:100vh;min-height:100svh;scroll-snap-align:start;position:relative;
+  display:flex;flex-direction:column;justify-content:center;
+  padding:78px 0 104px}
+.inner{width:min(1180px,94vw);margin:0 auto}
+/* slide header pattern */
+.s-head{margin-bottom:clamp(16px,2.6vh,32px)}
+.kicker{font:600 11px var(--mono);letter-spacing:.34em;color:var(--cyan);
+  display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.kicker::before{content:'';width:26px;height:1px;background:var(--cyan);opacity:.7}
+.s-title{font-size:clamp(30px,4.6vw,58px);font-weight:750;letter-spacing:-.022em;line-height:1.04}
+.s-title em{font-style:normal;background:linear-gradient(92deg,var(--cyan),var(--violet));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.s-sub{margin-top:12px;color:var(--ink2);font-size:clamp(14px,1.35vw,17px);max-width:64ch;line-height:1.55}
+.s-foot{margin-top:clamp(14px,2.4vh,26px);display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.caption{font:500 12.5px var(--mono);color:var(--ink3);letter-spacing:.04em;line-height:1.6}
+/* entrance animation */
+.slide [data-rise]{opacity:0}
+.slide.active [data-rise]{animation:rise .85s cubic-bezier(.2,.7,.2,1) both;animation-delay:var(--d,0ms)}
+@keyframes rise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+/* ============================================================
+   COMPONENTS — glass, chips, flows, equations, cards
+============================================================ */
+.glass{background:linear-gradient(180deg,rgba(17,25,46,.62),rgba(10,16,30,.46));
+  border:1px solid var(--line);border-radius:16px;
+  -webkit-backdrop-filter:blur(9px);backdrop-filter:blur(9px);
+  box-shadow:0 18px 44px rgba(0,0,0,.36)}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:7px 13px;border-radius:9px;
+  border:1px solid var(--line);background:rgba(14,22,40,.55);
+  font:600 11px var(--mono);letter-spacing:.12em;color:var(--ink2)}
+.chip b{color:var(--ink)}
+.chip.cy{border-color:rgba(89,226,255,.35);color:#bfeeff}
+.chip.vi{border-color:rgba(183,156,255,.35);color:#dccfff}
+.note{display:flex;gap:10px;align-items:flex-start;padding:12px 16px;border-radius:12px;
+  border:1px dashed rgba(146,176,224,.25);font-size:13px;color:var(--ink2);line-height:1.5;max-width:56ch}
+.note::before{content:'';flex:none;width:6px;height:6px;border-radius:50%;margin-top:6px;background:var(--cyan)}
+.flow{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap;justify-content:center}
+.fstep{padding:12px 16px;border-radius:12px;border:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(17,25,46,.6),rgba(10,16,30,.45));min-width:118px;text-align:center}
+.fstep b{display:block;font:700 12px var(--mono);letter-spacing:.16em;color:var(--ink);margin-bottom:5px}
+.fstep span{font:500 10.5px var(--mono);color:var(--ink3);letter-spacing:.04em;line-height:1.45;display:block}
+.fstep.cy b{color:var(--cyan)} .fstep.vi b{color:var(--violet)} .fstep.bl b{color:var(--blue)}
+.varrow{align-self:center;color:var(--ink3);flex:none}
+.eq{font-family:var(--mono);font-weight:600;color:var(--ink);letter-spacing:.02em;
+  font-size:clamp(23px,3.4vw,44px);display:flex;gap:.4em;align-items:baseline;justify-content:center;flex-wrap:wrap}
+.eq.sm{font-size:clamp(17px,2vw,26px)}
+.eq .t-w{color:var(--cyan)} .eq .t-b{color:var(--violet)} .eq .t-x{color:#9db1d6}
+.eq .t-f{color:var(--blue)} .eq .t-dim{color:var(--ink3)}
+.eq sub{font-size:.55em}
+.legend{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:16px}
+.legend .chip{font-size:10px;padding:5px 10px}
+.dotk{width:7px;height:7px;border-radius:2px;display:inline-block}
+/* spine (journey + final map) */
+.spine{position:relative;display:flex;flex-direction:column;gap:clamp(8px,1.6vh,16px);--spw:min(520px,42vw)}
+.spine::before{content:'';position:absolute;left:50%;top:8px;bottom:8px;width:2px;transform:translateX(-1px);
+  background:linear-gradient(180deg,transparent,var(--line) 10%,var(--line) 90%,transparent)}
+.sp-item{position:relative;display:flex;align-items:center;min-height:52px}
+.sp-item::before{content:'';position:absolute;left:50%;transform:translateX(-50%);
+  width:11px;height:11px;border-radius:50%;background:#0b1424;border:2px solid var(--cyan);
+  box-shadow:0 0 12px var(--glow-c)}
+.sp-card{width:var(--spw);padding:10px 16px;border-radius:12px;border:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(17,25,46,.6),rgba(10,16,30,.42))}
+.sp-item:nth-child(odd) .sp-card{margin-right:auto;text-align:right}
+.sp-item:nth-child(even) .sp-card{margin-left:auto}
+.sp-item+.sp-item{margin-top:clamp(-40px,-4.2vh,-24px)}
+.sp-num{font:700 10px var(--mono);letter-spacing:.2em;color:var(--ink3)}
+.sp-card b{display:block;font-size:15px;font-weight:650;letter-spacing:-.01em;margin:2px 0}
+.sp-card small{font:500 11px var(--mono);color:var(--ink3)}
+.sp-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;justify-content:flex-start}
+.sp-item:nth-child(odd) .sp-chips{justify-content:flex-end}
+.sp-group{font:700 10px var(--mono);letter-spacing:.26em;margin-bottom:6px}
+/* HUD chrome */
+.hud-top{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;justify-content:space-between;
+  align-items:center;padding:16px 26px;pointer-events:none}
+.hud-brand{font:600 10.5px var(--mono);letter-spacing:.3em;color:var(--ink3);display:flex;align-items:center;gap:10px}
+.hud-brand i{width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--glow-c)}
+.hud-sec{font:600 10.5px var(--mono);letter-spacing:.22em;color:var(--ink3)}
+.hud-sec b{color:var(--cyan);font-weight:700}
+.hud-sec span{color:var(--ink2)}
+.hud-progress{position:fixed;top:0;left:0;right:0;height:2px;z-index:51;background:rgba(146,176,224,.1)}
+#progFill{height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--violet));
+  box-shadow:0 0 12px var(--glow-c);transition:width .5s cubic-bezier(.4,0,.2,1)}
+.hud-rail{position:fixed;right:20px;top:50%;transform:translateY(-50%);z-index:50;
+  display:flex;flex-direction:column;gap:8px}
+.hud-rail button{width:7px;height:7px;border-radius:50%;border:1px solid rgba(146,176,224,.4);
+  background:transparent;cursor:pointer;padding:0;transition:all .3s}
+.hud-rail button:hover{border-color:var(--cyan)}
+.hud-rail button.on{background:var(--cyan);border-color:var(--cyan);box-shadow:0 0 9px var(--glow-c);transform:scale(1.5)}
+/* control bar */
+.hud-ctl{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:52;
+  display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:14px;
+  background:rgba(11,17,32,.72);border:1px solid var(--line);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  box-shadow:0 14px 38px rgba(0,0,0,.45)}
+.cbtn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:34px;min-width:34px;
+  border-radius:9px;border:1px solid transparent;background:transparent;color:var(--ink2);
+  cursor:pointer;font:600 10.5px var(--mono);letter-spacing:.18em;padding:0 10px;transition:all .25s}
+.cbtn:hover{color:var(--ink);background:rgba(89,226,255,.09);border-color:rgba(89,226,255,.3)}
+.cbtn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.c-count{font:700 11px var(--mono);letter-spacing:.14em;color:var(--ink);padding:0 8px}
+.c-count .c-sep{color:var(--ink3);padding:0 4px}
+.c-count #ctlTotal{color:var(--ink3)}
+.c-div{width:1px;height:20px;background:var(--line);margin:0 4px}
+/* navigator overlay */
+.nav-ov{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;
+  background:rgba(4,6,12,.72);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s}
+.nav-ov.open{opacity:1;visibility:visible}
+.nav-panel{width:min(560px,92vw);max-height:84vh;display:flex;flex-direction:column;
+  background:rgba(12,18,34,.9);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.nav-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;
+  border-bottom:1px solid var(--line);font:700 11px var(--mono);letter-spacing:.3em;color:var(--cyan)}
+.nav-list{list-style:none;overflow-y:auto;padding:10px}
+.nav-list li{display:flex;align-items:center;gap:14px;padding:9px 14px;border-radius:9px;cursor:pointer;
+  font-size:14px;color:var(--ink2);transition:background .2s,color .2s}
+.nav-list li:hover{background:rgba(89,226,255,.07);color:var(--ink)}
+.nav-list li.on{color:var(--ink);background:rgba(89,226,255,.1)}
+.nav-list .nn{font:700 10px var(--mono);color:var(--ink3);letter-spacing:.1em;width:24px}
+.nav-list li.on .nn{color:var(--cyan)}
+.nav-foot{padding:12px 20px;border-top:1px solid var(--line);
+  font:500 10px var(--mono);color:var(--ink3);letter-spacing:.14em}
+/* focus & kbd */
+:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:6px}
+kbd{font:600 10px var(--mono);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;
+  padding:2px 6px;color:var(--ink2);background:rgba(14,22,40,.6)}
+/* ============================================================
+   SLIDE-SPECIFIC
+============================================================ */
+/* hero */
+.hero .inner{text-align:center;position:relative;display:flex;flex-direction:column;align-items:center}
+.hero-glow{position:absolute;top:50%;left:50%;width:min(860px,92vw);height:340px;transform:translate(-50%,-52%);
+  background:radial-gradient(ellipse at center,rgba(89,226,255,.13),rgba(167,139,250,.09) 45%,transparent 70%);
+  filter:blur(28px);pointer-events:none;z-index:-1}
+.hero-label{font:600 11px var(--mono);letter-spacing:.5em;color:var(--cyan);margin-bottom:3vh}
+.hero-title{font-size:clamp(52px,10.5vw,142px);font-weight:800;line-height:.96;letter-spacing:-.035em}
+.hero-title .ln{display:block}
+.hero-title .out{color:rgba(238,244,255,.14)}
+@supports(-webkit-text-stroke:1px #fff){.hero-title .out{color:transparent;-webkit-text-stroke:1.5px rgba(238,244,255,.8)}}
+.hero-sub{margin-top:3vh;font-size:clamp(14px,1.6vw,19px);color:var(--ink2);letter-spacing:.02em}
+.hero-sub b{color:var(--ink);font-weight:600}
+.hero-hint{margin-top:5.5vh;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;
+  font:600 10px var(--mono);letter-spacing:.26em;color:var(--ink3)}
+.hero-chev{position:absolute;bottom:-4vh;left:50%;transform:translateX(-50%);color:var(--ink3)}
+.slide.active .hero-chev{animation:bob 2.2s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translate(-50%,0);opacity:.4}50%{transform:translate(-50%,9px);opacity:1}}
+/* equation hero (slide 5) */
+.eq-hero{padding:clamp(18px,3vh,34px) 20px;text-align:center}
+.eq-hero .eq{margin:6px 0}
+.eq-plain{text-align:center;margin-top:10px;font:500 12px var(--mono);color:var(--ink3);letter-spacing:.06em}
+/* interactive neuron readout */
+.readout{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;align-items:center;
+  margin-top:12px;font:600 12px var(--mono);letter-spacing:.08em;color:var(--ink2)}
+.readout b{color:var(--cyan)}
+.readout .hint-s{color:var(--ink3);font-weight:500;font-size:10.5px;letter-spacing:.2em}
+#neuronInfo{margin-top:10px;text-align:center;font:500 12px var(--mono);color:var(--ink2);
+  letter-spacing:.05em;min-height:18px;transition:color .25s}
+#neuronInfo.hot{color:#c9f3ff}
+/* paradigm cards */
+.pcards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.pcard{padding:22px;display:flex;flex-direction:column;gap:14px}
+.pcard header{display:flex;align-items:center;gap:12px}
+.pcard .pn{font:700 11px var(--mono);color:var(--ink3);letter-spacing:.2em}
+.pcard h3{font-size:17px;font-weight:720;letter-spacing:.02em}
+.pcard .picon{flex:none;width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--line);background:rgba(12,19,36,.6)}
+.pcard .picon svg{width:26px;height:26px}
+.prow{display:flex;gap:10px;font-size:12.5px;line-height:1.5;color:var(--ink2)}
+.prow b{flex:none;font:700 9.5px var(--mono);letter-spacing:.16em;color:var(--ink3);padding-top:3px;width:74px}
+.pcard .pmeta{font:500 11px var(--mono);color:var(--ink3);letter-spacing:.05em;margin-top:auto;
+  border-top:1px dashed rgba(146,176,224,.2);padding-top:12px}
+/* perceptron minis */
+.pminis{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.pmini{padding:16px;display:flex;flex-direction:column;gap:8px;align-items:center}
+.pmini h4{font:700 10px var(--mono);letter-spacing:.24em;color:var(--ink3)}
+/* weight adjust bars (slide 12) */
+.wadj{display:flex;flex-direction:column;gap:14px;padding:20px 22px}
+.wrow{display:grid;grid-template-columns:34px 1fr 66px;gap:12px;align-items:center}
+.wrow .wl{font:700 11px var(--mono);color:var(--ink2)}
+.wtrack{height:9px;border-radius:5px;background:rgba(146,176,224,.1);position:relative;overflow:hidden}
+.wfill{position:absolute;inset:0 auto 0 0;border-radius:5px;width:var(--o);
+  background:linear-gradient(90deg,rgba(89,226,255,.55),var(--cyan));box-shadow:0 0 10px var(--glow-c)}
+.slide.active .wfill{animation:wadj 4.6s ease-in-out infinite;animation-delay:.6s}
+@keyframes wadj{0%,18%{width:var(--o)}58%,84%{width:var(--n)}100%{width:var(--o)}}
+.wdelta{font:700 10.5px var(--mono);color:var(--violet);text-align:right}
+/* worked example */
+.xsteps{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px}
+.xstep{padding:14px 16px}
+.xstep .xn{font:700 10px var(--mono);letter-spacing:.22em;color:var(--cyan);margin-bottom:8px}
+.xstep .xv{font:600 13px var(--mono);color:var(--ink);line-height:1.7;letter-spacing:.02em}
+.xstep .xv i{font-style:normal;color:var(--violet)}
+.xstep .xv em{font-style:normal;color:var(--ink3)}
+/* algorithm timeline */
+.rail{position:relative;height:2px;background:rgba(146,176,224,.14);margin:26px 4px 30px;border-radius:2px}
+.rail-fill{position:absolute;inset:0;background:linear-gradient(90deg,var(--cyan),var(--violet));
+  transform:scaleX(0);transform-origin:left;border-radius:2px;box-shadow:0 0 10px var(--glow-c)}
+.slide.active .rail-fill{animation:railfill 2.6s cubic-bezier(.3,0,.2,1) .3s forwards}
+@keyframes railfill{to{transform:scaleX(1)}}
+.rail .tick{position:absolute;top:-4px;width:10px;height:10px;border-radius:50%;
+  background:#0b1424;border:1px solid rgba(146,176,224,.4);transform:translateX(-50%)}
+.slide.active .rail .tick{animation:tickon .35s both}
+@keyframes tickon{to{border-color:var(--cyan);box-shadow:0 0 9px var(--glow-c)}}
+.steps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.stePC{padding:14px 16px}
+.stepcard .sn{font:800 20px var(--mono);color:rgba(238,244,255,.16);letter-spacing:.04em}
+.stepcard b{display:block;font-size:13.5px;font-weight:700;margin:4px 0 5px;letter-spacing:.01em}
+.stepcard span{font:500 10.5px var(--mono);color:var(--ink3);line-height:1.5;letter-spacing:.03em;display:block}
+/* backprop phase */
+.phase{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center;margin-bottom:10px}
+.ph-badge{font:800 11px var(--mono);letter-spacing:.26em;padding:7px 14px;border-radius:8px;
+  border:1px solid rgba(89,226,255,.4);color:var(--cyan);background:var(--cyan-soft);transition:all .4s}
+.ph-badge[data-ph="1"]{border-color:rgba(183,156,255,.45);color:var(--violet);background:var(--violet-soft)}
+.ph-badge[data-ph="2"]{border-color:rgba(127,179,255,.45);color:var(--blue);background:rgba(127,179,255,.12)}
+.ph-sub{font:500 11.5px var(--mono);color:var(--ink3);letter-spacing:.05em}
+.phlegend{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.phchip{padding:10px 16px;border-radius:11px;border:1px solid var(--line);text-align:center;
+  opacity:.45;transition:all .45s;min-width:150px}
+.phchip b{display:block;font:700 11px var(--mono);letter-spacing:.2em;color:var(--ink)}
+.phchip span{font:500 10px var(--mono);color:var(--ink3);letter-spacing:.03em;display:block;margin-top:5px;line-height:1.5}
+.phchip.on{opacity:1;border-color:rgba(89,226,255,.45);box-shadow:0 0 22px rgba(89,226,255,.12);transform:translateY(-2px)}
+.phchip:nth-child(2).on{border-color:rgba(183,156,255,.5)}
+/* architecture / mlp captions */
+.laycaps{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+/* mlp distinction */
+.vs{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:stretch}
+.vs-card{padding:18px 20px;text-align:center}
+.vs-card b{display:block;font:800 13px var(--mono);letter-spacing:.2em;margin-bottom:6px}
+.vs-card.a b{color:var(--cyan)} .vs-card.b b{color:var(--violet)}
+.vs-card span{font:500 11px var(--mono);color:var(--ink3);letter-spacing:.04em;line-height:1.6}
+.vs-mid{display:flex;align-items:center;font:700 11px var(--mono);color:var(--ink3);letter-spacing:.2em}
+/* hopfield */
+.hopgrid{display:grid;grid-template-columns:1.05fr .95fr;gap:18px;align-items:stretch}
+.hopviz{padding:18px;display:flex;flex-direction:column;gap:10px;align-items:center}
+.hopmeta{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.hlist{display:flex;flex-direction:column;gap:12px;justify-content:center}
+.hitem{display:flex;gap:12px;font-size:13.5px;color:var(--ink2);line-height:1.55}
+.hitem i{flex:none;font:800 10px var(--mono);color:var(--cyan);border:1px solid rgba(89,226,255,.35);
+  border-radius:6px;padding:3px 7px;height:fit-content;letter-spacing:.1em;font-style:normal}
+/* associative memory flow */
+.amflow{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap}
+.amcell{padding:14px 16px;text-align:center}
+.amcell h5{font:700 9.5px var(--mono);letter-spacing:.22em;color:var(--ink3);margin-bottom:10px}
+/* grids & bars */
+.grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;width:var(--gs,118px)}
+.gc{aspect-ratio:1;border-radius:4px;background:rgba(120,150,200,.09);border:1px solid rgba(146,176,224,.1)}
+.gc.on{background:rgba(89,226,255,.55);border-color:rgba(89,226,255,.65);box-shadow:0 0 9px rgba(89,226,255,.22)}
+.gc.err{background:rgba(183,156,255,.5);border-color:rgba(183,156,255,.75)}
+.grid5.dim .gc.on{background:rgba(120,150,200,.24);border-color:rgba(146,176,224,.28);box-shadow:none}
+.grid5.settled{outline:1px solid rgba(89,226,255,.55);outline-offset:5px;border-radius:8px}
+.fbars{display:flex;align-items:flex-end;gap:5px;height:86px;padding:8px 10px 0;
+  border-bottom:1px solid var(--line)}
+.fbars span{flex:1;height:0;background:linear-gradient(180deg,var(--cyan),rgba(89,226,255,.25));
+  border-radius:3px 3px 0 0;box-shadow:0 0 8px rgba(89,226,255,.14)}
+.slide.active .fbars span{animation:fbgrow .9s cubic-bezier(.2,.7,.2,1) both;animation-delay:var(--d,0ms)}
+@keyframes fbgrow{to{height:var(--h)}}
+/* confidence bars */
+.cbs{display:flex;flex-direction:column;gap:9px;width:210px}
+.crow{display:grid;grid-template-columns:22px 1fr 40px;gap:9px;align-items:center;
+  font:700 11px var(--mono);color:var(--ink2)}
+.crow .ct{height:8px;border-radius:4px;background:rgba(146,176,224,.1);overflow:hidden}
+.crow .cf{display:block;height:100%;width:0;border-radius:4px;background:rgba(146,176,224,.4)}
+.crow.win .cf{background:linear-gradient(90deg,rgba(89,226,255,.7),var(--cyan));box-shadow:0 0 9px var(--glow-c)}
+.crow.win{color:var(--ink)}
+.slide.active .cf{animation:cbgrow 1s cubic-bezier(.2,.7,.2,1) both;animation-delay:var(--d,0ms)}
+@keyframes cbgrow{to{width:var(--w)}}
+/* applications */
+.appcards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.appcard{padding:22px;display:flex;flex-direction:column;gap:12px}
+.appcard .aicon{width:46px;height:46px;border-radius:12px;border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;background:rgba(12,19,36,.6)}
+.appcard h3{font-size:16.5px;font-weight:720;letter-spacing:.01em}
+.appcard p{font-size:12.5px;color:var(--ink2);line-height:1.55}
+.appcard .aex{margin-top:auto;display:flex;flex-direction:column;gap:7px;
+  border-top:1px dashed rgba(146,176,224,.2);padding-top:12px}
+.appcard .aex span{font:500 11px var(--mono);color:var(--ink3);letter-spacing:.03em}
+.appcard .aex span::before{content:'› ';color:var(--cyan)}
+/* split 2 */
+.split2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.split2 .card{padding:20px;display:flex;flex-direction:column;gap:14px}
+.split2 h3{font-size:15.5px;font-weight:720;letter-spacing:.01em;display:flex;gap:10px;align-items:center}
+.split2 h3 .tag{font:700 9px var(--mono);letter-spacing:.2em;color:var(--cyan);
+  border:1px solid rgba(89,226,255,.35);border-radius:6px;padding:3px 7px}
+/* takeaways */
+.tks{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tk{display:flex;gap:14px;padding:14px 18px;align-items:flex-start}
+.tk i{font:800 15px var(--mono);color:var(--cyan);font-style:normal;letter-spacing:.05em;opacity:.85}
+.tk p{font-size:13.5px;color:var(--ink2);line-height:1.55}
+.tk p b{color:var(--ink);font-weight:640}
+.closing{text-align:center;margin-top:clamp(18px,3vh,34px)}
+.closing .cl-line{font-size:clamp(17px,2.2vw,25px);font-weight:600;letter-spacing:-.01em;
+  background:linear-gradient(92deg,var(--ink),var(--cyan) 55%,var(--violet));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.closing .ty{margin-top:2.2vh;font:800 clamp(24px,3.6vw,42px) var(--mono);letter-spacing:.5em;
+  color:var(--ink);text-indent:.5em}
+.closing .ty-sub{margin-top:12px;font:600 9.5px var(--mono);letter-spacing:.4em;color:var(--ink3)}
+.closing .rule{width:120px;height:1px;margin:2vh auto 0;
+  background:linear-gradient(90deg,transparent,var(--line),transparent)}
+/* ============================================================
+   SVG DIAGRAM STYLES
+============================================================ */
+.slide svg{display:block;width:100%;height:auto;max-height:52vh;margin:0 auto}
+.slide svg.varrow{width:18px;height:18px;max-height:none;margin:0;flex:none}
+.slide svg.hero-chev{width:22px;height:22px;max-height:none;margin:0;display:block}
+svg text{font-family:var(--mono);user-select:none;-webkit-user-select:none}
+svg .lbl{font-size:13px;font-weight:600;fill:#93a7c9;letter-spacing:.14em}
+svg .lbl2{font-size:11.5px;font-weight:500;fill:#6d7fa0;letter-spacing:.08em}
+svg .lblc{fill:#7fd9f2} svg .lblv{fill:#c8b6ff}
+svg .ngl{font-size:15px;font-weight:700;fill:#e2ebfb}
+svg .val{font-size:12px;font-weight:600;fill:#b9c8e6}
+svg .dim{fill:#55627e}
+svg .axis{stroke:rgba(146,176,224,.4);stroke-width:1.2;fill:none}
+svg .gridln{stroke:rgba(146,176,224,.09);stroke-width:1}
+/* neuron (slide 3) */
+.dend{stroke:#7e93b8;stroke-width:2;fill:none;stroke-linecap:round}
+.soma{fill:#0e1830;stroke:rgba(146,176,224,.6);stroke-width:1.5}
+.nucleus{fill:rgba(89,226,255,.3);stroke:#59e2ff;stroke-width:1.2}
+.axon{stroke:#7e93b8;stroke-width:3;fill:none;stroke-linecap:round}
+.myelin{fill:rgba(167,139,250,.16);stroke:rgba(183,156,255,.5);stroke-width:1.2}
+.bouton{fill:#0e1830;stroke:rgba(89,226,255,.7);stroke-width:1.4}
+.leader{stroke:rgba(146,176,224,.35);stroke-width:1;stroke-dasharray:3 4;fill:none}
+.soma-ring{fill:none;stroke:rgba(89,226,255,.4);stroke-width:1.4;
+  transform-box:fill-box;transform-origin:center}
+.slide.active .soma-ring{animation:ringp 4.2s ease-out infinite}
+@keyframes ringp{0%{transform:scale(1);opacity:.55}70%,100%{transform:scale(1.28);opacity:0}}
+/* mapping (slide 4) */
+.colpanel{fill:rgba(13,20,38,.5);stroke:var(--line)}
+.mapline{stroke:rgba(89,226,255,.55);stroke-width:1.6;fill:none;opacity:0;
+  stroke-dasharray:var(--len,180);stroke-dashoffset:var(--len,180)}
+.slide.active .mapline{animation:fadein .6s ease forwards,dmap 1.5s cubic-bezier(.4,0,.2,1) forwards;
+  animation-delay:var(--d,0ms)}
+@keyframes dmap{to{stroke-dashoffset:0}}
+@keyframes fadein{to{opacity:1}}
+.spk{stroke:#59e2ff;stroke-width:2;fill:none;stroke-linejoin:round}
+/* generic networks */
+.edge{stroke:rgba(146,176,224,.17);stroke-width:1.2;fill:none}
+.nn{fill:#0d1626;stroke:rgba(146,176,224,.55);stroke-width:1.4}
+.nn.l0{fill:rgba(146,176,224,.13)}
+.nn.l1{stroke:#59e2ff;fill:rgba(89,226,255,.09)}
+.nn.l2{stroke:#b79cff;fill:rgba(183,156,255,.11)}
+.nn.l3{stroke:#7fb3ff;fill:rgba(127,179,255,.11)}
+.wedge{stroke:rgba(89,226,255,.75);stroke-width:2}
+.pdot{pointer-events:none}
+.pdot circle{filter:drop-shadow(0 0 5px rgba(89,226,255,.9))}
+.pdot.lg circle{filter:drop-shadow(0 0 8px rgba(89,226,255,1))}
+/* interactive neuron (slide 6) */
+g[data-info]{cursor:pointer}
+g[data-info] circle,g[data-info] rect{transition:filter .25s}
+g[data-info]:hover circle,g[data-info]:hover rect{filter:drop-shadow(0 0 7px rgba(89,226,255,.65))}
+.wchip{fill:rgba(89,226,255,.08);stroke:rgba(89,226,255,.5);stroke-width:1.3}
+.actbox{fill:rgba(127,179,255,.07);stroke:rgba(127,179,255,.55);stroke-width:1.4}
+.ynode{fill:rgba(89,226,255,.12);stroke:#59e2ff;stroke-width:1.8}
+.sig{stroke:#7fb3ff;stroke-width:2;fill:none}
+/* learning ring (slide 8) */
+.rnode{fill:rgba(14,22,40,.85);stroke:rgba(146,176,224,.45);stroke-width:1.3}
+.rarc{stroke:rgba(89,226,255,.5);stroke-width:1.4;fill:none}
+.rcircle{fill:none;stroke:rgba(146,176,224,.22);stroke-width:1;stroke-dasharray:2 7;
+  transform-box:fill-box;transform-origin:center}
+.slide.active .rcircle{animation:spin 40s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* delta bowl (slide 14) */
+.bowl{stroke:rgba(89,226,255,.5);stroke-width:2;fill:rgba(89,226,255,.045)}
+.bowlball circle{fill:#b79cff;filter:drop-shadow(0 0 8px rgba(183,156,255,.9))}
+.gradarr{stroke:rgba(183,156,255,.7);stroke-width:1.4;fill:none;stroke-dasharray:4 4}
+/* backprop */
+.egroup.upd .edge{animation:edgepulse .8s ease-in-out infinite}
+@keyframes edgepulse{0%,100%{stroke-width:1.2;stroke:rgba(146,176,224,.17)}
+  50%{stroke-width:3.4;stroke:rgba(127,179,255,.75)}}
+.bpdot{pointer-events:none}
+.bpdot circle{filter:drop-shadow(0 0 6px rgba(89,226,255,.8))}
+/* hopfield */
+.hedge{stroke:rgba(146,176,224,.13);stroke-width:1;fill:none}
+.hedge.hot{stroke:rgba(89,226,255,.4)}
+.h-node{fill:#0d1626;stroke:#51617f;stroke-width:1.5;transition:all .3s}
+.h-node.on{fill:rgba(89,226,255,.85);stroke:#59e2ff;filter:drop-shadow(0 0 7px rgba(89,226,255,.6))}
+.hngl{font-size:14px;font-weight:800;fill:#8fa3c4}
+.h-node.on + text{fill:#04121c}
+/* forecast chart */
+.hist{stroke:#59e2ff;stroke-width:2.4;fill:none;stroke-linecap:round}
+.hdots circle{fill:#0b1424;stroke:#59e2ff;stroke-width:1.6}
+.nowln{stroke:rgba(146,176,224,.3);stroke-width:1;stroke-dasharray:3 5}
+.fc{stroke:#b79cff;stroke-width:2.4;fill:none;stroke-dasharray:6 7;opacity:0;transition:opacity .8s}
+.slide.active .fc{opacity:1}
+.slide.active .fc{animation:march 1.1s linear infinite}
+@keyframes march{to{stroke-dashoffset:-13}}
+.fcdot circle{fill:#b79cff;filter:drop-shadow(0 0 7px rgba(183,156,255,.9))}
+/* ============================================================
+   RESPONSIVE
+============================================================ */
+@media (max-width:1080px){.hud-rail{display:none}}
+@media (max-width:900px){
+  .steps-grid{grid-template-columns:repeat(2,1fr)}
+  .pcards,.appcards{grid-template-columns:1fr;gap:12px}
+  .vs{grid-template-columns:1fr}.vs-mid{justify-content:center}
+  .hopgrid{grid-template-columns:1fr}
+  .split2{grid-template-columns:1fr}
+  .tks{grid-template-columns:1fr}
+  .pminis{grid-template-columns:1fr}
+  svg .lbl{font-size:17px}svg .lbl2{font-size:15px}svg .ngl{font-size:18px}svg .val{font-size:15px}
+}
+@media (max-width:760px){
+  .hud-top{padding:12px 16px}
+  .hud-brand em,.hud-sec .hs-name{display:none}
+  .spine::before{left:16px}
+  .sp-item{min-height:0}
+  .sp-item+.sp-item{margin-top:0}
+  .sp-item::before{left:16px;transform:none}
+  .sp-item .sp-card,.sp-item:nth-child(odd) .sp-card{margin:0 0 0 42px;width:auto;text-align:left}
+  .sp-item:nth-child(odd) .sp-chips{justify-content:flex-start}
+  .spine{--spw:auto}
+  .cbtn.wide{padding:0 8px}.cbtn.wide em{display:none}
+  .slide{padding:70px 0 110px}
+  .grid5{--gs:96px}
+  .cbs{width:170px}
+}
+@media (max-height:700px){
+  .slide{padding:66px 0 96px}
+  .s-sub{margin-top:8px}
+  .slide svg{max-height:44vh}
+  .hero-title{font-size:clamp(44px,9vw,92px)}
+}
+/* ============================================================
+   REDUCED MOTION
+============================================================ */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;
+    transition-duration:.001s!important}
+  .slide [data-rise]{opacity:1!important}
+  #cglow{display:none}
+}
+
+/* ============================================================
+   VISIBILITY PASS — solid cards, brighter text, calmer background
+============================================================ */
+:root{ --ink2:#c9d6ef; --ink3:#9aabcc; --line:rgba(150,185,240,.36); }
+#bg{opacity:.42}
+#gridoverlay{opacity:.5}
+#vignette{background:radial-gradient(ellipse at center,transparent 45%,rgba(3,5,10,.7) 100%)}
+
+/* panels: opaque enough that particles never show through */
+.glass,.fstep,.sp-card,.phchip{
+  background:linear-gradient(180deg,rgba(27,41,72,.97),rgba(15,24,46,.97));
+  border:1px solid rgba(150,185,240,.42);
+  box-shadow:0 12px 30px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08);
+  -webkit-backdrop-filter:none;backdrop-filter:none}
+.chip{background:rgba(25,39,70,.96);border-color:rgba(150,185,240,.45);color:var(--ink2)}
+.chip.cy{background:rgba(16,52,74,.96);border-color:rgba(89,226,255,.65);color:#d9f7ff}
+.chip.vi{background:rgba(42,33,78,.96);border-color:rgba(183,156,255,.65);color:#eadfff}
+.stage{background:rgba(9,15,30,.84);border:1px solid rgba(150,185,240,.28);border-radius:18px;
+  padding:10px 16px;box-shadow:0 14px 34px rgba(0,0,0,.42)}
+.note{display:block;position:relative;padding:13px 18px 13px 34px;
+  background:rgba(22,34,62,.96);border:1px solid rgba(150,185,240,.42);font-size:15px;color:var(--ink2);max-width:62ch}
+.note::before{position:absolute;left:15px;top:20px;margin:0}
+.note b{color:var(--ink)}
+.s-sub b{color:var(--ink);font-weight:650}
+.stepcard{padding:16px 18px}
+
+/* type: bigger and brighter */
+.kicker{font-size:13px}
+.s-sub{color:var(--ink2);font-size:clamp(15px,1.45vw,19px)}
+.caption{font-size:13.5px}
+.chip{font-size:13px}.legend .chip{font-size:12.5px}
+.fstep b{font-size:14px}.fstep span{font-size:13px;color:var(--ink2)}
+.eq-plain{font-size:14.5px;color:var(--ink2)}
+.readout{font-size:15px}.readout .hint-s{font-size:12px}
+#neuronInfo{font-size:15px;color:#e3edff}
+.pcard h3{font-size:19px}
+.pcard .pn{font-size:12px}
+.prow{font-size:15px}.prow b{font-size:11px;width:92px;color:var(--cyan)}
+.pcard .pmeta{font-size:13px;color:var(--ink2)}
+.pmini h4{font-size:12px;color:var(--ink2)}
+.xstep .xn{font-size:12.5px}.xstep .xv{font-size:15px}
+.xstep .xs{font:500 13px var(--mono);color:var(--ink2);margin-top:8px;line-height:1.45}
+.stepcard .sn{font-size:22px;color:rgba(110,225,255,.55)}
+.stepcard b{font-size:16.5px;margin:5px 0 7px}
+.stepcard span{font-size:13.5px;color:var(--ink2);line-height:1.55}
+.phchip{opacity:.62}
+.phchip b{font-size:13px}.phchip span{font-size:12px;color:var(--ink2)}
+.ph-sub{font-size:13px;color:var(--ink2)}
+.vs-card b{font-size:14.5px}.vs-card span{font-size:13.5px;color:var(--ink2)}
+.vs-mid{color:var(--ink2)}
+.hitem{font-size:16px;color:var(--ink2)}.hitem i{font-size:11px;min-width:96px;text-align:center;align-self:flex-start}
+.amcell h5{font-size:12px;color:var(--ink2)}
+.cbs .crow,.crow{font-size:12.5px}
+.tk p{font-size:16px;color:var(--ink2)}.tk p b{color:#fff}
+.closing .ty-sub{font-size:11.5px}
+.hud-brand,.hud-sec{font-size:12px}
+.cbtn{font-size:12px}.c-count{font-size:13px}
+.nav-list li{font-size:15px}.nav-foot{font-size:11px}
+
+/* diagrams: brighter lines & labels */
+.edge{stroke:rgba(150,185,240,.36)}
+.hedge{stroke:rgba(150,185,240,.3)}
+.dend,.axon{stroke:#aabee2}
+.soma{stroke:rgba(170,200,250,.8)}
+.gc{background:rgba(150,185,240,.15);border-color:rgba(150,185,240,.32)}
+.grid5.dim .gc.on{background:rgba(150,185,240,.32);border-color:rgba(150,185,240,.5)}
+.colpanel{fill:rgba(21,33,60,.94);stroke:rgba(150,185,240,.45)}
+.wtrack,.crow .ct{background:rgba(150,185,240,.22)}
+.rail{background:rgba(150,185,240,.24)}
+svg .lbl2{fill:#a9bbdc}
+svg .lblc{fill:#92e6fa} svg .lblv{fill:#d8ccff}
+svg .dim{fill:#8b9cc0}
+svg .gridln{stroke:rgba(150,185,240,.14)}
+@media (min-width:901px){
+  svg .lbl{font-size:15px;fill:#bccbea}
+  svg .lbl2{font-size:13.5px}
+  svg .val{font-size:13.5px;fill:#dbe5f7}
+}
+
+/* ============================================================
+   SECTIONS MODAL — landscape panel, card grid, themed scrollbar
+============================================================ */
+.nav-ov{background:radial-gradient(ellipse at center,rgba(8,14,30,.78),rgba(2,4,9,.9));
+  -webkit-backdrop-filter:blur(10px) saturate(1.2);backdrop-filter:blur(10px) saturate(1.2)}
+.nav-ov{transition:opacity .3s ease,visibility 0s linear .3s}
+.nav-ov.open{transition:opacity .3s ease,visibility 0s linear 0s}
+.nav-panel{width:min(1120px,94vw);max-height:min(660px,88vh);border-radius:22px;position:relative;
+  background:linear-gradient(180deg,rgba(21,32,58,.99),rgba(10,16,32,.99));
+  border:1px solid rgba(150,185,240,.42);
+  box-shadow:0 40px 100px rgba(0,0,0,.72),0 0 0 1px rgba(89,226,255,.07),0 0 70px rgba(89,226,255,.08);
+  transform:translateY(18px) scale(.965);opacity:0;
+  transition:transform .42s cubic-bezier(.2,.8,.2,1),opacity .35s ease}
+.nav-panel::before{content:'';position:absolute;left:34px;right:34px;top:-1px;height:2px;border-radius:2px;
+  background:linear-gradient(90deg,transparent,var(--cyan),var(--violet),transparent);opacity:.9}
+.nav-ov.open .nav-panel{transform:none;opacity:1}
+.nav-head{padding:20px 26px 16px;border-bottom:1px solid rgba(150,185,240,.26);font:inherit;letter-spacing:normal;color:inherit}
+.nh-l{display:flex;align-items:baseline;gap:14px}
+.nh-title{font:800 15px var(--mono);letter-spacing:.34em;color:var(--cyan)}
+.nh-count{font:600 12px var(--mono);letter-spacing:.14em;color:var(--ink3)}
+.nh-r{display:flex;align-items:center;gap:14px}
+.nh-group{display:inline-flex;align-items:center;gap:9px;padding:7px 14px;border-radius:999px;
+  border:1px solid rgba(89,226,255,.5);background:rgba(16,52,74,.7);
+  font:700 11.5px var(--mono);letter-spacing:.2em;color:#d9f7ff}
+.nh-group i{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--glow-c)}
+.nav-list{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:20px 26px 22px;
+  list-style:none;overflow-y:auto;overscroll-behavior:contain}
+@supports not selector(::-webkit-scrollbar){.nav-list{scrollbar-width:thin;scrollbar-color:rgba(89,226,255,.55) rgba(150,185,240,.08)}}
+.nav-list::-webkit-scrollbar-button{display:none;width:0;height:0}
+.nav-list::-webkit-scrollbar{width:10px}
+.nav-list::-webkit-scrollbar-track{background:rgba(150,185,240,.07);border-radius:10px;margin:6px 0}
+.nav-list::-webkit-scrollbar-thumb{background:linear-gradient(180deg,rgba(89,226,255,.6),rgba(183,156,255,.55));
+  border-radius:10px;border:2px solid rgba(12,19,36,.95)}
+.nav-list::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#59e2ff,#b79cff)}
+.nav-list li{position:relative;display:flex;align-items:center;gap:14px;padding:13px 16px;border-radius:13px;
+  background:linear-gradient(180deg,rgba(27,41,72,.96),rgba(16,25,48,.96));
+  border:1px solid rgba(150,185,240,.3);color:var(--ink2);cursor:pointer;
+  transition:transform .22s,border-color .22s,box-shadow .22s,background .22s;
+  opacity:0;transform:translateY(8px)}
+.nav-ov.open .nav-list li{opacity:1;transform:none;transition-delay:calc(var(--i)*22ms + 90ms),0s,0s,0s}
+.nav-list li:hover,.nav-list li:focus-visible{transform:translateY(-2px);border-color:rgba(89,226,255,.7);
+  background:linear-gradient(180deg,rgba(32,52,88,.99),rgba(18,30,56,.99));
+  box-shadow:0 10px 26px rgba(0,0,0,.45),0 0 22px rgba(89,226,255,.14);color:var(--ink);outline:none}
+.nav-list li.on{border-color:rgba(89,226,255,.85);background:linear-gradient(180deg,rgba(18,58,82,.99),rgba(14,34,58,.99));color:#fff}
+.nav-list .nn{font:800 20px var(--mono);letter-spacing:.04em;color:rgba(150,185,240,.5);width:34px;flex:none}
+.nav-list li.on .nn,.nav-list li:hover .nn{color:var(--cyan)}
+.nav-list .nt{display:flex;flex-direction:column;gap:3px;min-width:0}
+.nav-list .nt b{font-size:15.5px;font-weight:650;letter-spacing:-.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav-list .nt small{font:600 10.5px var(--mono);letter-spacing:.22em;color:var(--ink3)}
+.nav-list .now{display:none;margin-left:auto;font:800 9.5px var(--mono);letter-spacing:.2em;color:#04202c;
+  background:var(--cyan);border-radius:6px;padding:3px 7px}
+.nav-list li.on .now{display:block}
+.nav-foot{display:flex;gap:26px;justify-content:center;flex-wrap:wrap;padding:13px 26px;
+  border-top:1px solid rgba(150,185,240,.26);font:600 11px var(--mono);letter-spacing:.14em;color:var(--ink3)}
+.nav-foot kbd{margin-right:4px}
+@media (max-width:900px){.nav-list{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:560px){.nav-list{grid-template-columns:1fr}.nh-group{display:none}.nav-foot{display:none}}
+@media (max-height:640px){.nav-list{gap:9px;padding:14px 20px}.nav-list li{padding:9px 14px}}
+
+/* ============================================================
+   GROUP BADGE (title slide)
+============================================================ */
+.hero-group{margin-top:3.2vh;display:inline-flex;align-items:center;gap:14px;padding:11px 24px;border-radius:999px;
+  background:linear-gradient(180deg,rgba(24,40,72,.95),rgba(14,24,46,.95));
+  border:1px solid rgba(89,226,255,.55);box-shadow:0 0 34px rgba(89,226,255,.14),inset 0 1px 0 rgba(255,255,255,.08);
+  font:700 clamp(12px,1.15vw,15px) var(--mono);letter-spacing:.3em;color:#d9f7ff}
+.hero-group b{color:#fff;font-weight:800}
+.hero-group .hg-dot{width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 12px var(--glow-c)}
+.hero-group .hg-sep{width:1px;height:16px;background:rgba(150,185,240,.5)}
+.hero-hint{margin-top:3.6vh}
+.hud-brand{color:var(--ink2)}
+
+/* ============================================================
+   GROUP BADGE BUTTON + TEAM POPUP
+============================================================ */
+button.hero-group{appearance:none;-webkit-appearance:none;cursor:pointer;
+  transition:transform .25s,box-shadow .25s,border-color .25s}
+button.hero-group:hover,button.hero-group:focus-visible{transform:translateY(-2px);border-color:#59e2ff;
+  box-shadow:0 0 44px rgba(89,226,255,.3),inset 0 1px 0 rgba(255,255,255,.1)}
+.hero-group .hg-more{margin-left:4px;padding:4px 10px;border-radius:999px;font-size:.78em;letter-spacing:.2em;
+  background:rgba(89,226,255,.18);border:1px solid rgba(89,226,255,.5);color:#bff1ff}
+.grp-ov{position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at center,rgba(8,14,30,.8),rgba(2,4,9,.92));
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  opacity:0;visibility:hidden;transition:opacity .3s ease,visibility 0s linear .3s}
+.grp-ov.open{opacity:1;visibility:visible;transition:opacity .3s ease,visibility 0s linear 0s}
+.grp-panel{position:relative;width:min(820px,94vw);border-radius:22px;padding:26px 28px 18px;
+  background:linear-gradient(180deg,rgba(22,34,62,.99),rgba(10,16,32,.99));
+  border:1px solid rgba(150,185,240,.42);
+  box-shadow:0 40px 100px rgba(0,0,0,.72),0 0 70px rgba(89,226,255,.1);
+  transform:translateY(18px) scale(.965);opacity:0;transition:transform .42s cubic-bezier(.2,.8,.2,1),opacity .35s}
+.grp-panel::before{content:'';position:absolute;left:34px;right:34px;top:-1px;height:2px;border-radius:2px;
+  background:linear-gradient(90deg,transparent,var(--cyan),var(--violet),transparent)}
+.grp-ov.open .grp-panel{transform:none;opacity:1}
+.grp-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.grp-kick{font:800 12px var(--mono);letter-spacing:.3em;color:var(--cyan)}
+.grp-head h3{margin-top:8px;font-size:clamp(26px,3.2vw,36px);font-weight:760;letter-spacing:-.02em;color:#fff}
+.grp-sub{display:flex;align-items:center;gap:14px;margin:12px 0 18px;font:700 11.5px var(--mono);letter-spacing:.2em;color:var(--ink3)}
+.grp-sub i{flex:1;height:1px;background:linear-gradient(90deg,rgba(150,185,240,.4),transparent)}
+.grp-sub span:first-child{color:#d9f7ff;background:rgba(16,52,74,.8);border:1px solid rgba(89,226,255,.5);padding:5px 11px;border-radius:999px}
+.grp-list{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grp-list li{display:flex;align-items:center;gap:16px;padding:18px 18px;border-radius:16px;
+  background:linear-gradient(180deg,rgba(28,43,76,.97),rgba(16,25,48,.97));
+  border:1px solid rgba(150,185,240,.34);opacity:0;transform:translateY(10px);
+  transition:opacity .4s,transform .4s,border-color .25s,box-shadow .25s}
+.grp-ov.open .grp-list li{opacity:1;transform:none;transition-delay:calc(var(--i)*90ms + 120ms),calc(var(--i)*90ms + 120ms),0s,0s}
+.grp-list li:hover{border-color:rgba(89,226,255,.7);box-shadow:0 12px 30px rgba(0,0,0,.45),0 0 24px rgba(89,226,255,.14)}
+.grp-list .av{flex:none;width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font:800 19px var(--mono);letter-spacing:.04em;color:#06121e}
+.grp-list .av0{background:linear-gradient(135deg,#59e2ff,#7fb3ff)}
+.grp-list .av1{background:linear-gradient(135deg,#b79cff,#7fb3ff)}
+.grp-list .av2{background:linear-gradient(135deg,#59e2ff,#b79cff)}
+.grp-list .gm{display:flex;flex-direction:column;gap:5px;min-width:0}
+.grp-list .gm small{font:700 10.5px var(--mono);letter-spacing:.24em;color:var(--ink3)}
+.grp-list .gm b{font-size:18px;font-weight:700;color:#fff;letter-spacing:-.005em}
+.grp-list .gm em{font:600 12px var(--mono);font-style:normal;letter-spacing:.1em;color:var(--ink2)}
+.grp-list .gm em strong{color:var(--cyan);font-weight:800;letter-spacing:.12em}
+.grp-foot{margin-top:16px;padding-top:12px;border-top:1px solid rgba(150,185,240,.24);text-align:center;
+  font:600 11px var(--mono);letter-spacing:.14em;color:var(--ink3)}
+@media (max-width:640px){.grp-list{grid-template-columns:1fr}.hero-group .hg-more{display:none}}
+</style>
+</head>
+<body>
+
+<!-- shared SVG defs (arrow markers) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <marker id="arw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#6f8db0"/></marker>
+    <marker id="arwc" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#59e2ff"/></marker>
+    <marker id="arwv" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#b79cff"/></marker>
+  </defs>
+</svg>
+
+<canvas id="bg" aria-hidden="true"></canvas>
+<div id="gridoverlay" aria-hidden="true"></div>
+<div id="vignette" aria-hidden="true"></div>
+<div id="cglow" aria-hidden="true"></div>
+
+<!-- HUD -->
+<div class="hud-progress" aria-hidden="true"><div id="progFill"></div></div>
+<header class="hud-top">
+  <div class="hud-brand"><i></i>GROUP 12 <em>·</em> SOFT COMPUTING <em>/</em> UNIT IV</div>
+  <div class="hud-sec"><b id="hudIdx">01</b> <span>·</span> <span class="hs-name" id="hudName">Introduction</span></div>
+</header>
+<nav class="hud-rail" id="rail" aria-label="Section navigator"></nav>
+
+<!-- ============ DECK ============ -->
+<main id="deck">
+
+<!-- 01 · HERO -->
+<section class="slide hero" id="s01" data-name="Introduction" aria-label="Introduction">
+  <div class="inner">
+    <div class="hero-glow"></div>
+    <div class="hero-label" data-rise style="--d:100ms">SOFT COMPUTING&nbsp;·&nbsp;UNIT&nbsp;IV</div>
+    <h1 class="hero-title">
+      <span class="ln" data-rise style="--d:220ms">ARTIFICIAL</span>
+      <span class="ln out" data-rise style="--d:360ms">NEURAL</span>
+      <span class="ln" data-rise style="--d:500ms">NETWORKS</span>
+    </h1>
+    <p class="hero-sub" data-rise style="--d:680ms">From <b>Biological Neurons</b> to <b>Learning Machines</b></p>
+    <button type="button" class="hero-group" id="grpBtn" data-rise style="--d:780ms" aria-haspopup="dialog" aria-controls="grpOverlay"><span class="hg-dot"></span><b>GROUP 12</b><span class="hg-sep"></span>SOFT COMPUTING<span class="hg-more">VIEW TEAM ›</span></button>
+    <div class="hero-hint" data-rise style="--d:860ms">
+      <span><kbd>↑</kbd> <kbd>↓</kbd> SCROLL / ARROW KEYS TO EXPLORE</span>
+      <span><kbd>F</kbd> FULLSCREEN</span>
+    </div>
+    <svg class="hero-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+  </div>
+</section>
+
+<!-- 03 · BIOLOGICAL NEURON -->
+<section class="slide" id="s03" data-name="Biological Neuron" aria-label="Biological Neuron">
+  <div class="inner">
+    <header class="s-head">
+      <div class="kicker" data-rise>SEC 02 · FOUNDATIONS</div>
+      <h2 class="s-title" data-rise style="--d:80ms">It Starts With a <em>Neuron</em></h2>
+      <p class="s-sub" data-rise style="--d:160ms">Your brain has about 86 billion tiny cells called neurons. They talk to each other using tiny electrical and chemical signals.</p>
+    </header>
+    <div class="stage" data-rise style="--d:260ms">
+      <svg id="bioSvg" viewBox="0 0 960 400" role="img" aria-label="Diagram of a biological neuron with signal pulse">
+        <circle class="soma-ring" cx="300" cy="200" r="46"/>
+        <g class="dend">
+          <path d="M 258 178 C 220 150 200 130 170 105"/><path d="M 205 138 L 185 108"/><path d="M 182 124 L 162 90"/>
+          <path d="M 256 192 L 180 168"/><path d="M 202 180 L 162 158"/>
+          <path d="M 256 212 L 180 238"/><path d="M 202 228 L 162 252"/>
+          <path d="M 258 226 C 222 254 202 272 172 296"/><path d="M 205 262 L 185 292"/><path d="M 182 276 L 162 310"/>
+        </g>
+        <circle cx="170" cy="105" r="3.2" fill="#59e2ff" opacity=".7"/><circle cx="162" cy="90" r="3" fill="#59e2ff" opacity=".5"/>
+        <circle cx="162" cy="158" r="3" fill="#59e2ff" opacity=".5"/><circle cx="162" cy="252" r="3" fill="#59e2ff" opacity=".5"/>
+        <circle cx="172" cy="296" r="3.2" fill="#59e2ff" opacity=".7"/><circle cx="162" cy="310" r="3" fill="#59e2ff" opacity=".5"/>
+        <path class="axon" d="M 346 200 L 680 200"/>
+        <rect class="myelin" x="372" y="188" width="78" height="24" rx="12"/>
+        <rect class="myelin" x="482" y="188" width="78" height="24" rx="12"/>
+        <rect class="myelin" x="592" y="188" width="78" height="24" rx="12"/>
+        <path class="dend" d="M 680 200 C 720 170 760 130 805 115"/>
+        <path class="dend" d="M 680 200 C 720 200 750 200 782 200"/>
+        <path class="dend" d="M 680 200 C 720 230 760 270 805 285"/>
+        <circle class="bouton" cx="808" cy="113" r="9"/><circle class="bouton" cx="786" cy="200" r="9"/><circle class="bouton" cx="808" cy="287" r="9"/>
+        <path class="leader" d="M 820 110 L 846 104"/><path class="leader" d="M 798 200 L 846 200"/><path class="leader" d="M 820 290 L 846 296"/>
+        <circle class="soma" cx="300" cy="200" r="46"/><circle class="nucleus" cx="300" cy="200" r="13"/>
+        <path class="leader" d="M 152 68 L 184 98"/><text class="lbl" x="118" y="60" text-anchor="start">DENDRITES</text>
+        <path class="leader" d="M 300 252 L 300 280"/><text class="lbl" x="300" y="298" text-anchor="middle">SOMA · INTEGRATES</text>
+        <path class="leader" d="M 480 160 L 480 186"/><text class="lbl" x="480" y="152" text-anchor="middle">AXON</text>
+        <path class="leader" d="M 480 214 L 480 248"/><text class="lbl2" x="480" y="264" text-anchor="middle">MYELIN SHEATH</text>
+        <path class="leader" d="M 812 70 L 808 102"/><text class="lbl" x="830" y="62" text-anchor="middle">SYNAPTIC TERMINALS</text>
+        <path class="leader" d="M 838 320 L 814 296"/><text class="lbl2" x="836" y="338" text-anchor="middle">SYNAPSES</text>
+        <path d="M 585 170 L 628 170" stroke="#59e2ff" stroke-width="1.6" marker-end="url(#arwc)" opacity=".8"/>
+        <text class="lbl2" x="606" y="158" text-anchor="middle">signal</text>
+        <path id="bp1" d="M 170 105 C 220 150 240 170 300 200 L 680 200 C 720 170 760 130 805 115" fill="none" stroke="none"/>
+        <path id="bp2" d="M 172 296 C 222 254 242 236 300 200 L 680 200 C 720 200 750 200 782 200" fill="none" stroke="none"/>
+      </svg>
+    </div>
+    <div class="s-foot" data-rise style="--d:380ms">
+      <div class="note">When you practise something, the connections between neurons get stronger — that is a key part of how the brain learns. Computers copy this idea using numbers called <b>weights</b>.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 04 · BIOLOGICAL → ARTIFICIAL -->
+<section class="slide" id="s04" data-name="Nature → Machine" aria-label="Nature inspired the machine">
+  <div class="inner">
+    <header class="s-head">
+      <div class="kicker" data-rise>SEC 03 · FOUNDATIONS</div>
+      <h2 class="s-title" data-rise style="--d:80ms">Nature Inspired the <em>Machine</em></h2>
+      <p class="s-sub" data-rise style="--d:160ms">A computer neuron is a simplified copy of a brain neuron — every part has a matching part.</p>
+    </header>
+    <div class="stage" data-rise style="--d:260ms">
+      <svg id="mapSvg" viewBox="0 0 1000 512" role="img" aria-label="Mapping from biological neuron parts to artificial neuron parts">
+        <rect class="colpanel" x="108" y="58" width="304" height="428" rx="16"/>
+        <rect class="colpanel" x="588" y="58" width="304" height="428" rx="16"/>
+        <text class="lbl lblc" x="260" y="42" text-anchor="middle">BIOLOGICAL NEURON</text>
+        <text class="lbl lblv" x="740" y="42" text-anchor="middle">ARTIFICIAL NEURON</text>
+        <!-- row 1 : dendrites -> inputs -->
+        <g class="dend" stroke-width="2"><path d="M 212 88 L 260 105"/><path d="M 212 105 L 260 105"/><path d="M 212 122 L 260 105"/><path d="M 260 105 L 308 105"/></g>
+        <text class="lbl2" x="260" y="140" text-anchor="middle">DENDRITES</text>
+        <circle class="nn l1" cx="740" cy="105" r="14"/><text class="ngl" x="740" y="110" text-anchor="middle">xᵢ</text>
+        <text class="lbl2" x="740" y="140" text-anchor="middle">INPUTS</text>
+        <!-- row 2 : synapse -> weights -->
+        <circle class="bouton" cx="233" cy="195" r="8"/><circle class="bouton" cx="287" cy="195" r="8"/>
+        <path class="leader" d="M 243 195 L 277 195"/>
+        <text class="lbl2" x="260" y="228" text-anchor="middle">SYNAPTIC STRENGTH</text>
+        <circle class="nn l1" cx="740" cy="195" r="14"/><text class="ngl" x="740" y="200" text-anchor="middle">wᵢ</text>
+        <text class="lbl2" x="740" y="228" text-anchor="middle">WEIGHTS</text>
+        <!-- row 3 : soma -> summation -->
+        <circle class="soma" cx="260" cy="285" r="17"/><circle class="nucleus" cx="260" cy="285" r="5"/>
+        <text class="lbl2" x="260" y="318" text-anchor="middle">SOMA · INTEGRATES</text>
+        <circle class="nn l1" cx="740" cy="285" r="15"/><text class="ngl" x="740" y="291" text-anchor="middle">Σ</text>
+        <text class="lbl2" x="740" y="318" text-anchor="middle">SUMMATION</text>
+        <!-- row 4 : threshold -> activation -->
+        <path class="spk" d="M 224 375 L 250 375 L 257 352 L 264 396 L 271 375 L 296 375"/>
+        <text class="lbl2" x="260" y="418" text-anchor="middle">FIRING THRESHOLD</text>
+        <rect class="actbox" x="712" y="358" width="56" height="34" rx="9"/><text class="ngl" x="740" y="381" text-anchor="middle">f</text>
+        <text class="lbl2" x="740" y="418" text-anchor="middle">ACTIVATION</text>
+        <!-- row 5 : axon -> output -->
+        <rect class="myelin" x="206" y="458" width="96" height="14" rx="7"/>
+        <path d="M 308 465 L 340 465" stroke="#6f8db0" stroke-width="1.6" marker-end="url(#arw)"/>
+        <text class="lbl2" x="260" y="492" text-anchor="middle">AXON</text>
+        <circle class="nn l2" cx="740" cy="465" r="14"/><text class="ngl" x="740" y="470" text-anchor="middle">y</text>
+        <path d="M 758 465 L 796 465" stroke="#b79cff" stroke-width="1.6" marker-end="url(#arwv)"/>
+        <text class="lbl2" x="740" y="494" text-anchor="middle">OUTPUT</text>
+        <!-- connectors -->
+        <path class="mapline" style="--d:400ms"  d="M 416 105 C 480 105 520 105 584 105" marker-end="url(#arwc)"/>
+        <path class="mapline" style="--d:700ms"  d="M 416 195 C 480 195 520 195 584 195" marker-end="url(#arwc)"/>
+        <path class="mapline" style="--d:1000ms" d="M 416 285 C 480 285 520 285 584 285" marker-end="url(#arwc)"/>
+        <path class="mapline" style="--d:1300ms" d="M 416 375 C 480 375 520 375 584 375" marker-end="url(#arwc)"/>
+        <path class="mapline" style="--d:1600ms" d="M 416 465 C 480 465 520 465 584 465" marker-end="url(#arwc)"/>
+        <text class="lbl2" x="500" y="90" text-anchor="middle">receives</text>
+        <text class="lbl2" x="500" y="180" text-anchor="middle">strength</text>
+        <text class="lbl2" x="500" y="270" text-anchor="middle">integrates</text>
+        <text class="lbl2" x="500" y="360" text-anchor="middle">fires</text>
+        <text class="lbl2" x="500" y="450" text-anchor="middle">transmits</text>
+      </svg>
+    </div>
+    <div class="s-foot" data-rise style="--d:420ms">
+      <div class="chip vi">1943 · McCULLOCH &amp; PITTS — proposed the first mathematical model of a neuron: a simple on/off threshold unit</div>
+    </div>
+  </div>
+</section>
+
+<!-- 06 · THE ARTIFICIAL NEURON (interactive) -->
+<section class="slide" id="s06" data-name="Artificial Neuron" aria-label="Interactive artificial neuron">
+  <div class="inner">
+    <header class="s-head">
+      <div class="kicker" data-rise>SEC 04 · FOUNDATIONS</div>
+      <h2 class="s-title" data-rise style="--d:80ms">The <em>Artificial Neuron</em></h2>
+      <p class="s-sub" data-rise style="--d:160ms">Two simple steps: <b>net = Σ wᵢxᵢ + b</b> (add up the weighted inputs), then <b>y = f(net)</b> (decide the output). Hover for each part’s role · click a weight or the bias to change it.</p>
+    </header>
+    <div class="stage" data-rise style="--d:260ms">
+      <svg id="neuSvg" viewBox="0 0 900 430" role="img" aria-label="Interactive artificial neuron diagram">
+        <g id="neuEdges">
+          <path id="ne0" class="edge" d="M 122 70 L 505 215"/>
+          <path id="ne1" class="edge" d="M 122 165 L 505 215"/>
+          <path id="ne2" class="edge" d="M 122 260 L 505 215"/>
+          <path id="ne3" class="edge" d="M 122 355 L 505 215"/>
+          <path id="neb" class="edge" d="M 505 357 L 505 271"/>
+          <path d="M 740 215 L 800 215" stroke="#59e2ff" stroke-width="1.8" marker-end="url(#arwc)"/>
+        </g>
+        <g data-info="xᵢ — inputs: the information coming in">
+          <circle class="nn l0" cx="100" cy="70" r="20"/><text class="ngl" x="100" y="76" text-anchor="middle">x₁</text><text class="val" x="100" y="106" text-anchor="middle">1.0</text>
+          <circle class="nn l0" cx="100" cy="165" r="20"/><text class="ngl" x="100" y="171" text-anchor="middle">x₂</text><text class="val" x="100" y="201" text-anchor="middle">0.0</text>
+          <circle class="nn l0" cx="100" cy="260" r="20"/><text class="ngl" x="100" y="266" text-anchor="middle">x₃</text><text class="val" x="100" y="296" text-anchor="middle">1.0</text>
+          <circle class="nn l0" cx="100" cy="355" r="20"/><text class="ngl" x="100" y="361" text-anchor="middle">x₄</text><text class="val" x="100" y="391" text-anchor="middle">0.5</text>
+        </g>
+        <g class="wgrp" data-w="0" data-info="w₁ — weight: how important input 1 is · click to change">
+          <rect class="wchip" x="236" y="120" width="68" height="28" rx="9"/><text class="ngl" x="254" y="139" text-anchor="middle">w₁</text><text class="val" id="w0v" x="292" y="139" text-anchor="middle">0.50</text>
+        </g>
+        <g class="wgrp" data-w="1" data-info="w₂ — weight: how important input 2 is · click to change">
+          <rect class="wchip" x="236" y="178" width="68" height="28" rx="9"/><text class="ngl" x="254" y="197" text-anchor="middle">w₂</text><text class="val" id="w1v" x="292" y="197" text-anchor="middle">0.75</text>
+        </g>
+        <g class="wgrp" data-w="2" data-info="w₃ — weight: how important input 3 is · click to change (negative = violet)">
+          <rect class="wchip" x="236" y="237" width="68" height="28" rx="9"/><text class="ngl" x="254" y="256" text-anchor="middle">w₃</text><text class="val" id="w2v" x="292" y="256" text-anchor="middle">-0.25</text>
+        </g>
+        <g class="wgrp" data-w="3" data-info="w₄ — weight: how important input 4 is · click to change">
+          <rect class="wchip" x="236" y="295" width="68" height="28" rx="9"/><text class="ngl" x="254" y="314" text-anchor="middle">w₄</text><text class="val" id="w3v" x="292" y="314" text-anchor="middle">0.25</text>
+        </g>
+        <g data-info="Σ — adds up all the weighted inputs plus the bias">
+          <circle class="soma" cx="505" cy="215" r="56"/><text class="ngl" x="505" y="228" text-anchor="middle" style="font-size:34px">Σ</text>
+        </g>
+        <g class="bgrp" data-info="b — bias: a nudge that makes the neuron fire more or less easily · click to change">
+          <circle class="nn l2" cx="505" cy="375" r="19"/><text class="ngl" x="505" y="381" text-anchor="middle">b</text><text class="val" id="bv" x="505" y="412" text-anchor="middle">0.25</text>
+        </g>
+        <g data-info="f — activation: turns the total into a final answer between 0 and 1 (sigmoid shown)">
+          <rect class="actbox" x="620" y="172" width="120" height="86" rx="14"/>
+          <text class="ngl" x="660" y="224" text-anchor="middle" style="font-size:24px">f</text>
+          <path class="sig" d="M 688 242 C 708 242 712 190 732 190"/>
+        </g>
+        <g data-info="y — output: the neuron's final answer">
+          <circle class="ynode" cx="828" cy="215" r="19"/><text class="ngl" x="828" y="221" text-anchor="middle">y</text>
+          <text class="val" id="yv" x="828" y="254" text-anchor="middle">0.65</text>
+        </g>
+      </svg>
+    </div>
+    <div class="readout" data-rise style="--d:360ms">
+      <span>net = <b id="rNet">0.63</b></span>
+      <span>y = σ(net) = <b id="rY">0.65</b></span>
+      <span class="hint-s">EDGE THICKNESS = |w| · VIOLET = NEGATIVE WEIGHT</span>
+    </div>
+    <p id="neuronInfo" data-rise style="--d:440ms">hover a component — its role appears here</p>
+  </div>
+</section>
+
+<!-- 07 · ANN ARCHITECTURE -->
+<section class="slide" id="s07" data-name="ANN Architecture" aria-label="ANN architecture">
+  <div class="inner">
+    <header class="s-head">
+      <div class="kicker" data-rise>SEC 05 · ARCHITECTURE</div>
+      <h2 class="s-title" data-rise style="--d:80ms">One Neuron Is <em>Not Enough</em></h2>
+      <p class="s-sub" data-rise style="--d:160ms">One neuron is too simple. Connect many neurons in layers and you get a neural network. Information flows forward, layer by layer.</p>
+    </header>
+    <div class="stage" data-rise style="--d:260ms" id="annmount"></div>
+    <div class="laycaps" data-rise style="--d:380ms">
+      <span class="chip">INPUT — takes in the data</span>
+      <span class="chip cy">HIDDEN — finds useful patterns inside</span>
+      <span class="chip vi">OUTPUT — gives the answer</span>
+    </div>
+    <div class="s-foot" data-rise style="--d:460ms">
+      <div class="note">Every connection has a <b>weight wᵢⱼ</b> — what the network knows is stored in these numbers (plus the biases).</div>
+    </div>
+  </div>
+</section>
+
+<!-- 09 · LEARNING RULES -->
+<section class="slide" id="s09" data-name="Learning Rules" aria-label="Learning rules">
+  <div class="inner">
+    <header class="s-head">
+      <div class="kicker" data-rise>SEC 06 · LEARNING</div>
+      <h2 class="s-title" data-rise style="--d:80ms">Learning <em>Rules</em></h2>
+      <p class="s-sub" data-rise style="--d:160ms">Learning simply means changing the weights. A <b>learning rule</b> is the recipe that decides how much to change each weight (Δw).</p>
+    </header>
+    <div class="glass eq-hero" data-rise style="--d:360ms">
+      <div class="eq sm"><span>w<sub>new</sub></span><span>=</span><span>w<sub>old</sub></span><span>+</span><span class="t-w">Δw</span></div>
+      <p class="eq-plain">Δw depends on the rule: supervised rules use the output error · Hebbian and competitive rules use neuron activity (no answer key)</p>
+    </div>
+    <div class="xsteps" data-rise style="--d:420ms;margin-top:16px">
+      <div class="glass xstep"><div class="xn">HEBBIAN</div><div class="xv">Δwᵢ = η·xᵢ·y</div><div class="xs">"fire together, wire together" · unsupervised</div></div>
+      <div class="glass xstep"><div class="xn">PERCEPTRON</div><div class="xv">Δwᵢ = η·(t − y)·xᵢ</div><div class="xs">learn from mistakes · supervised</div></div>
+      <div class="glass xstep"><div class="xn">DELTA RULE</div><div class="xv">Δwᵢ = η·(t − y)·f′(net)·xᵢ</div><div class="xs">step downhill on the error · supervised · Widrow–Hoff (LMS) when f′ = 1</div></div>
+      <div class="glass xstep"><div class="xn">COMPETITIVE</div><div class="xv">Δw = η·(x − w), winner only</div><div class="xs">only the best-matching neuron learns · unsupervised</div></div>
+    </div>
+    <div class="legend" data-rise style="--d:460ms">
+      <span class="chip cy">LEARNING RULE — the recipe that changes weights</span>
+      <span class="chip vi">PARADIGM — the kind of feedback available</span>
+      <span class="chip">ALGORITHM — the full step-by-step training procedure</span>
+    </div>
+  </div>
+</section>
+
+<!-- 10 · THREE LEARNING PARADIGMS -->
+<section class="slide" id="s10" data-name="Learning Paradigms" aria-label="Three learning paradigms">
+  <div class="inner">
+    <header class="s-head">
+      <div class="kicker" data-rise>SEC 07 · LEARNING</div>
+      <h2 class="s-title" data-rise style="--d:80ms">Three Ways a Machine Can <em>Learn</em></h2>
+    </header>
+    <div class="pcards">
+      <div class="glass pcard" data-rise style="--d:200ms">
+        <header>
+          <div class="picon"><svg viewBox="0 0 28 28" fill="none" stroke="#59e2ff" stroke-width="1.6"><circle cx="14" cy="14" r="11"/><circle cx="14" cy="14" r="6"/><circle cx="14" cy="14" r="1.6" fill="#59e2ff" stroke="none"/></svg></div>
+          <div><span class="pn">01</span><h3>SUPERVISED</h3></div>
+        </header>
+        <div class="prow"><b>LEARNS</b><span>from examples that come with the right answer.</span></div>
+        <div class="prow"><b>FEEDBACK</b><span>it is told exactly how wrong it was.</span></div>
+        <div class="prow"><b>EXAMPLE</b><span>recognising handwritten digits.</span></div>
+        <div class="prow"><b>ALGORITHMS</b><span>perceptron · delta rule · backpropagation.</span></div>
+        <div class="pmeta">a student with an answer key</div>
+      </div>
+      <div class="glass pcard" data-rise style="--d:340ms">
+        <header>
+          <div class="picon"><svg viewBox="0 0 28 28" fill="none" stroke="#b79cff" stroke-width="1.6"><circle cx="8" cy="9" r="2.4"/><circle cx="13" cy="6" r="2.4"/><circle cx="7" cy="15" r="2.4"/><circle cx="21" cy="20" r="2.4"/><circle cx="23" cy="13" r="2.4"/><path d="M4 4l13 5M4 4l2 13M17 9l4 4M6 17l13 4M21 17l2-2"/></svg></div>
+          <div><span class="pn">02</span><h3>UNSUPERVISED</h3></div>
+        </header>
+        <div class="prow"><b>LEARNS</b><span>from data with no answers — finds patterns by itself.</span></div>
+        <div class="prow"><b>FEEDBACK</b><span>no answers given — only the data's own pattern.</span></div>
+        <div class="prow"><b>EXAMPLE</b><span>grouping similar things together.</span></div>
+        <div class="prow"><b>ALGORITHMS</b><span>Hebbian · competitive learning (Kohonen SOM).</span></div>
+        <div class="pmeta">sorting a pile without a guide</div>
+      </div>
+      <div class="glass pcard" data-rise style="--d:480ms">
+        <header>
+          <div class="picon"><svg viewBox="0 0 28 28" fill="none" stroke="#7fb3ff" stroke-width="1.6"><path d="M14 4a10 10 0 1 1-9.6 12.6"/><path d="M2 12l2.4 5L10 15.4"/><text x="11" y="17.6" font-size="9" fill="#7fb3ff" stroke="none" font-family="monospace" font-weight="700">+1</text></svg></div>
+          <div><span class="pn">03</span><h3>REINFORCEMENT</h3></div>
+        </header>
+        <div class="prow"><b>LEARNS</b><span>by trying actions and seeing what happens.</span></div>
+        <div class="prow"><b>FEEDBACK</b><span>a reward or penalty, often later.</span></div>
+        <div class="prow"><b>EXAMPLE</b><span>a program learning to play a game.</span></div>
+        <div class="prow"><b>ALGORITHMS</b><span>weights updated from a reward (critic) signal.</span></div>
+        <div class="pmeta">training by reward, not by answers</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 11 · PERCEPTRON -->
+<section class="slide" id="s11" data-name="Perceptron" aria-label="The perceptron">
+  <div class="inner">
+    <header class="s-head">
+      <div class="kicker" data-rise>SEC 08 · TRAINING</div>
+      <h2 class="s-title" data-rise style="--d:80ms">The <em>Perceptron</em></h2>
+      <p class="s-sub" data-rise style="--d:160ms">Rosenblatt, 1958 — the first neuron that can learn. It makes a simple yes/no (+1 / −1) decision.</p>
+    </header>
+    <div class="flow" data-rise style="--d:240ms">
+      <div class="fstep"><b>INPUTS</b><span>x₁ … xₙ</span></div><svg class="varrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      <div class="fstep cy"><b>WEIGHTED SUM</b><span>Σwᵢxᵢ + b</span></div><svg class="varrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      <div class="fstep bl"><b>STEP FUNCTION</b><span>fire or not</span></div><svg class="varrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      <div class="fstep vi"><b>OUTPUT</b><span>y ∈ { +1, −1 }</span></div>
+    </div>
+    <div class="pminis" data-rise style="--d:340ms;margin-top:16px">
+      <div class="glass pmini">
+        <h4>DECISION FUNCTION</h4>
+        <svg viewBox="0 0 260 185">
+          <path class="axis" d="M 34 18 V 150 H 242"/>
+          <text class="val" x="24" y="42" text-anchor="end">+1</text>
+          <text class="val" x="24" y="142" text-anchor="end">−1</text>
+          <text class="lbl2" x="130" y="168" text-anchor="middle">0</text>
+          <text class="lbl2" x="216" y="168" text-anchor="middle">net</text>
+          <path d="M 34 42 H 128 V 138 H 242" fill="none" stroke="#59e2ff" stroke-width="2.6"/>
+          <circle cx="128" cy="42" r="4" fill="#59e2ff"/><circle cx="128" cy="138" r="4" fill="#0b1424" stroke="#59e2ff" stroke-width="1.6"/>
+          <text class="lbl lblc" x="168" y="34" text-anchor="middle">f(net)</text>
+        </svg>
+        <span class="chip">y = +1 if Σwᵢxᵢ + b ≥ 0 · else −1</span>
+      </div>
+      <div class="glass pmini">
+        <h4>WHAT IT LEARNS — A DECISION BOUNDARY</h4>
+        <svg viewBox="0 0 300 210">
+          <polygon points="30,165 270,45 270,8 30,8" fill="rgba(89,226,255,.05)"/>
+          <polygon points="30,165 270,45 270,202 30,202" fill="rgba(183,156,255,.05)"/>
+          <path d="M 30 165 L 270 45" stroke="#e2ebfb" stroke-width="1.8"/>
+          <g fill="#59e2ff"><circle cx="70" cy="60" r="4.5"/><circle cx="110" cy="40" r="4.5"/><circle cx="62" cy="108" r="4.5"/><circle cx="98" cy="88" r="4.5"/><circle cx="140" cy="55" r="4.5"/><circle cx="85" cy="76" r="4.5"/><circle cx="115" cy="100" r="4.5"/></g>
+          <g fill="#b79cff"><circle cx="172" cy="150" r="4.5"/><circle cx="212" cy="130" r="4.5"/><circle cx="182" cy="175" r="4.5"/><circle cx="232" cy="160" r="4.5"/><circle cx="202" cy="185" r="4.5"/><circle cx="242" cy="140" r="4.5"/><circle cx="162" cy="128" r="4.5"/></g>
+          <text class="lbl lblc" x="72" y="26" text-anchor="middle">class +1</text>
+          <text class="lbl lblv" x="228" y="200" text-anchor="middle">class −1</text>
+          <text class="lbl2" x="188" y="94" text-anchor="middle">w·x + b = 0</text>
+        </svg>
+        <span class="chip vi">it can only split data with a straight line → so we need multilayer networks</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 13 · NUMERICAL EXAMPLE -->
+<section class="slide" id="s13" data-name="Worked Example" aria-label="Perceptron numerical example">
+  <div class="inner">
+    <header class="s-head">
+      <div class="kicker" data-rise>SEC 09 · TRAINING</div>
+      <h2 class="s-title" data-rise style="--d:80ms">A Tiny <em>Learning Step</em></h2>
+      <p class="s-sub" data-rise style="--d:160ms">One example, one correction — small numbers so you can check it by hand.</p>
+    </header>
+    <div class="xsteps">
+      <div class="glass xstep" data-rise style="--d:220ms"><div class="xn">01 · GIVEN</div>
+        <div class="xv">x = [1, 0, 1]<br>w = [0.2, −0.3, 0.1]<br>b = 0.1 · t = <i>−1</i> · η = 0.1</div></div>
+      <div class="glass xstep" data-rise style="--d:320ms"><div class="xn">02 · NET INPUT</div>
+        <div class="xv">net = 0.2·1 + (−0.3)·0<br>+ 0.1·1 + 0.1<br><em>=</em> <b>0.4</b></div></div>
+      <div class="glass xstep" data-rise style="--d:420ms"><div class="xn">03 · OUTPUT</div>
+        <div class="xv">net ≥ 0 →<br>y = <b>+1</b></div></div>
+      <div class="glass xstep" data-rise style="--d:520ms"><div class="xn">04 · ERROR</div>
+        <div class="xv">e = t − y<br>= −1 − (+1)<br><em>=</em> <b>−2</b> <em>(wrong)</em></div></div>
+      <div class="glass xstep" data-rise style="--d:620ms"><div class="xn">05 · UPDATE</div>
+        <div class="xv">Δwᵢ = η·e·xᵢ<br>Δw = [<i>−0.2</i>, 0, <i>−0.2</i>]<br>Δb = <i>−0.2</i></div></div>
+    </div>
+    <div class="s-foot" data-rise style="--d:720ms">
+      <span class="chip">w<sup>new</sup> = [0.0, −0.3, −0.1]</span>
+      <span class="chip">b<sup>new</sup> = −0.1</span>
+      <span class="chip cy">re-check the same input: net = −0.2 → y = −1 = target ✓</span>
+    </div>
+    <div class="s-foot" data-rise style="--d:820ms">
+      <div class="note">Repeat this over all the examples and the weights settle on the right answer — as long as a straight line can separate the classes.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 14 · DELTA RULE -->
+<section class="slide" id="s14" data-name="Delta Rule" aria-label="Delta rule">
+  <div class="inner">
+    <header class="s-head">
+      <div class="kicker" data-rise>SEC 10 · TRAINING</div>
+      <h2 class="s-title" data-rise style="--d:80ms">From "Wrong" to <em>"How Wrong?"</em></h2>
+    </header>
+    <div class="split2" data-rise style="--d:180ms">
+      <div class="glass pcard">
+        <header><div class="picon"><svg viewBox="0 0 28 28" fill="none" stroke="#7fb3ff" stroke-width="1.6"><path d="M4 14h6M12 6v16M18 14h6"/></svg></div>
+        <div><span class="pn" style="color:var(--blue)">PERCEPTRON</span><h3>Binary verdict</h3></div></header>
+        <div class="prow"><b>ASKS</b><span>was the answer right or wrong?</span></div>
+        <div class="prow"><b>ERROR</b><span>only 3 possible errors (−2, 0, +2) because the output is a hard ±1.</span></div>
+      </div>
+      <div class="glass pcard">
+        <header><div class="picon"><svg viewBox="0 0 28 28" fill="none" stroke="#59e2ff" stroke-width="1.6"><path d="M4 20h20M4 20c4-14 16-14 20 0"/><circle cx="14" cy="11" r="2.2" fill="#59e2ff" stroke="none"/></svg></div>
+        <div><span class="pn">DELTA RULE</span><h3>Analog verdict</h3></div></header>
+        <div class="prow"><b>ASKS</b><span>how wrong was it, and in which direction?</span></div>
+        <div class="prow"><b>ERROR</b><span>any size of error (e = t − y), because the output is smooth (linear or sigmoid).</span></div>
+      </div>
+    </div>
+    <div class="split2" data-rise style="--d:340ms;margin-top:16px">
+      <div class="glass eq-hero">
+        <div class="eq sm"><span>w<sub>i</sub><sup>new</sup></span><span>=</span><span>w<sub>i</sub></span><span>+</span><span class="t-b">η</span><span>·</span><span class="t-w">(t − y)</span><span>·</span><span class="t-f">f′(net)</span><span>·</span><span class="t-x">x<sub>i</sub></span></div>
+        <p class="eq-plain">slide downhill on the error E = ½(t − y)² · for a linear unit f′ = 1 → Widrow–Hoff (LMS) rule</p>
+        <div class="legend"><span class="chip cy">bigger mistake → bigger correction</span><span class="chip">η = step size: too small → slow · too large → unstable</span></div>
+      </div>
+      <div class="glass pmini">
+        <h4>DESCENDING THE ERROR SURFACE</h4>
+        <svg id="bowlSvg" viewBox="0 0 520 270">
+          <path class="axis" d="M 52 22 V 226 H 500"/>
+          <text class="lbl2" x="62" y="36" text-anchor="middle">E(w)</text>
+          <text class="lbl2" x="474" y="248" text-anchor="middle">w →</text>
+          <path class="bowl" d="M 70 70 Q 260 470 450 70"/>
+          <path class="gradarr" d="M 96 116 Q 120 160 150 188" marker-end="url(#arwv)"/>
+          <text class="lbl2 lblv" x="120" y="156" text-anchor="middle">−∇E</text>
+          <path id="bowlPath" d="M 70 70 Q 260 470 450 70" fill="none" stroke="none"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 17 · MULTILAYER PERCEPTRON -->
+<section class="slide" id="s17" data-name="Multilayer Perceptron" aria-label="Multilayer perceptron">
+  <div class="inner">
+    <header class="s-head">
+      <div class="kicker" data-rise>SEC 11 · TRAINING</div>
+      <h2 class="s-title" data-rise style="--d:80ms">MLP — Scaling the <em>Perceptron</em></h2>
+      <p class="s-sub" data-rise style="--d:160ms">A multilayer perceptron stacks neurons in layers. Hidden layers build up from simple features to complex ones.</p>
+    </header>
+    <div class="stage" data-rise style="--d:240ms" id="mlpmount"></div>
+    <div class="laycaps" data-rise style="--d:340ms">
+      <span class="chip">INPUT — raw data</span>
+      <span class="chip cy">HIDDEN 1 — simple features</span>
+      <span class="chip cy">HIDDEN 2 — combined features</span>
+      <span class="chip vi">OUTPUT — the decision</span>
+    </div>
+    <div class="vs" data-rise style="--d:440ms;margin-top:16px">
+      <div class="glass vs-card a"><b>MLP</b><span>the ARCHITECTURE — what the network <b>is</b>: layers, weights, activations</span></div>
+      <div class="vs-mid">VS</div>
+      <div class="glass vs-card b"><b>BACKPROPAGATION</b><span>the TRAINING ALGORITHM — how it <b>learns</b>: error backward, weights updated</span></div>
+    </div>
+    <div class="s-foot" data-rise style="--d:540ms">
+      <span class="chip">a hidden layer with non-linear activation can solve problems no straight line can (e.g. XOR) — a single perceptron can't</span>
+    </div>
+  </div>
+</section>
+
+<!-- 15 · BACKPROPAGATION (centerpiece) -->
+<section class="slide" id="s15" data-name="Backpropagation" aria-label="Backpropagation">
+  <div class="inner">
+    <header class="s-head">
+      <div class="kicker" data-rise>SEC 12 · TRAINING</div>
+      <h2 class="s-title" data-rise style="--d:80ms">How Does a <em>Multilayer Network</em> Learn?</h2>
+    </header>
+    <div class="phase" data-rise style="--d:180ms">
+      <span class="ph-badge" id="phTitle" data-ph="0">FORWARD PASS</span>
+      <span class="ph-sub" id="phSub">data flows forward and the network makes a prediction ŷ</span>
+    </div>
+    <div class="stage" data-rise style="--d:280ms" id="bpmount"></div>
+    <div class="phlegend" data-rise style="--d:400ms">
+      <div class="phchip on"><b>FORWARD</b><span>make a prediction ŷ</span></div>
+      <div class="phchip"><b>BACKWARD</b><span>send the error back to blame each weight</span></div>
+      <div class="phchip"><b>UPDATE</b><span>wᵢⱼ ← wᵢⱼ − η · ∂E/∂wᵢⱼ</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 16 · BACKPROPAGATION ALGORITHM -->
+<section class="slide" id="s16" data-name="Algorithm Steps" aria-label="Backpropagation algorithm steps">
+  <div class="inner">
+    <header class="s-head">
+      <div class="kicker" data-rise>SEC 13 · TRAINING</div>
+      <h2 class="s-title" data-rise style="--d:80ms">Backpropagation — <em>Step by Step</em></h2>
+    </header>
+    <div class="rail" data-rise style="--d:160ms">
+      <div class="rail-fill"></div>
+      <span class="tick" style="left:6.25%;--i:0"></span><span class="tick" style="left:18.75%;--i:1"></span>
+      <span class="tick" style="left:31.25%;--i:2"></span><span class="tick" style="left:43.75%;--i:3"></span>
+      <span class="tick" style="left:56.25%;--i:4"></span><span class="tick" style="left:68.75%;--i:5"></span>
+      <span class="tick" style="left:81.25%;--i:6"></span><span class="tick" style="left:93.75%;--i:7"></span>
+    </div>
+    <div class="steps-grid">
+      <div class="glass stepcard" data-rise style="--d:240ms"><span class="sn">01</span><b>Initialise</b><span>small random weights &amp; biases</span></div>
+      <div class="glass stepcard" data-rise style="--d:330ms"><span class="sn">02</span><b>Forward pass</b><span>pass the inputs through each layer to get the output</span></div>
+      <div class="glass stepcard" data-rise style="--d:420ms"><span class="sn">03</span><b>Compute error</b><span>how wrong? E = ½ Σ (t − y)²</span></div>
+      <div class="glass stepcard" data-rise style="--d:510ms"><span class="sn">04</span><b>Output δ</b><span>output blame: δₖ = (tₖ − yₖ)·f′(netₖ)</span></div>
+      <div class="glass stepcard" data-rise style="--d:600ms"><span class="sn">05</span><b>Hidden δ</b><span>hidden blame: δⱼ = f′(netⱼ)·Σ δₖwⱼₖ</span></div>
+      <div class="glass stepcard" data-rise style="--d:690ms"><span class="sn">06</span><b>Update weights</b><span>Δwᵢⱼ = η·δⱼ·xᵢ  (= −η ∂E/∂wᵢⱼ)</span></div>
+      <div class="glass stepcard" data-rise style="--d:780ms"><span class="sn">07</span><b>Repeat</b><span>go through all the examples (one epoch)</span></div>
+      <div class="glass stepcard" data-rise style="--d:870ms"><span class="sn">08</span><b>Stop</b><span>when the error is small enough (or max epochs)</span></div>
+    </div>
+    <div class="s-foot" data-rise style="--d:960ms">
+      <span class="chip vi">each layer's blame (δ) is worked out from the layer above it · δ = −∂E/∂net</span>
+    </div>
+  </div>
+</section>
+
+<!-- 18 · HOPFIELD NETWORK -->
+<section class="slide" id="s18" data-name="Hopfield Network" aria-label="Hopfield network">
+  <div class="inner">
+    <header class="s-head">
+      <div class="kicker" data-rise>SEC 14 · MEMORY</div>
+      <h2 class="s-title" data-rise style="--d:80ms">When a Network Becomes a <em>Memory</em></h2>
+      <p class="s-sub" data-rise style="--d:160ms">Hopfield, 1982 — a network that stores patterns as memories. Show it a messy version and it settles back to the closest stored one.</p>
+    </header>
+    <div class="hopgrid">
+      <div class="glass hopviz" data-rise style="--d:240ms">
+        <div id="hopmount"></div>
+        <div class="hopmeta">
+          <span class="chip cy" id="hEnergy">E = —</span>
+          <span class="chip" id="hStatus">SETTLING — ENERGY DECREASING</span>
+        </div>
+      </div>
+      <div class="hlist" data-rise style="--d:340ms">
+        <div class="hitem"><i>RECURRENT</i><span>every neuron is linked to every other neuron (not itself), and each link works both ways equally: wᵢⱼ = wⱼᵢ.</span></div>
+        <div class="hitem"><i>STORAGE</i><span>patterns are stored in the weights using Hebb's rule (neurons that fire together link up) — it can reliably store about 0.14·N patterns (N = number of neurons).</span></div>
+        <div class="hitem"><i>DYNAMICS</i><span>neurons update one at a time, and the network's “energy” keeps dropping until it settles.</span></div>
+        <div class="hitem"><i>RETRIEVAL</i><span>the settled states are the stored memories (a few false ones can appear too) — a noisy input rolls down into the nearest one.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 19 · ASSOCIATIVE MEMORY -->
+<section class="slide" id="s19" data-name="Associative Memory" aria-label="Associative memory">
+  <div class="inner">
+    <header class="s-head">
+      <div class="kicker" data-rise>SEC 15 · MEMORY</div>
+      <h2 class="s-title" data-rise style="--d:80ms">Remembering From <em>Incomplete Information</em></h2>
+    </header>
+    <div class="amflow" data-rise style="--d:200ms">
+      <div class="glass amcell"><h5>STORED PATTERN</h5><div id="amA"></div></div>
+      <svg class="varrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      <div class="glass amcell"><h5>NOISY CUE</h5><div id="amB"></div></div>
+      <svg class="varrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      <div class="glass amcell"><h5>HOPFIELD DYNAMICS</h5><div id="amRing"></div></div>
+      <svg class="varrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      <div class="glass amcell"><h5>RETRIEVED PATTERN</h5><div id="amC"></div></div>
+    </div>
+    <div class="s-foot" data-rise style="--d:340ms">
+      <span class="chip cy">AUTO-ASSOCIATIVE — a damaged pattern is repaired into the original</span>
+      <span class="chip vi">HETERO-ASSOCIATIVE — one pattern recalls a different, paired pattern (like key → value), e.g. BAM</span>
+    </div>
+    <div class="s-foot" data-rise style="--d:440ms">
+      <div class="note">It recalls by content, not by address — a partial clue is enough. Watch the violet mistakes get fixed one cell at a time.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 21 · PATTERN RECOGNITION -->
+<section class="slide" id="s21" data-name="Pattern Recognition" aria-label="Pattern recognition pipeline">
+  <div class="inner">
+    <header class="s-head">
+      <div class="kicker" data-rise>SEC 16 · APPLICATIONS</div>
+      <h2 class="s-title" data-rise style="--d:80ms">Pattern <em>Recognition</em></h2>
+      <p class="s-sub" data-rise style="--d:160ms">The network turns a raw pattern into features, then decides which class it belongs to.</p>
+    </header>
+    <div class="amflow" data-rise style="--d:240ms">
+      <div class="glass amcell"><h5>INPUT PATTERN</h5><div id="prGrid"></div></div>
+      <svg class="varrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      <div class="glass amcell"><h5>FEATURE VECTOR</h5><div id="prBars"></div></div>
+      <svg class="varrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      <div class="glass amcell"><h5>NETWORK</h5><div id="prNet"></div></div>
+      <svg class="varrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      <div class="glass amcell"><h5>RECOGNISED CLASS · illustrative</h5>
+        <div class="cbs">
+          <div class="crow win"><span>A</span><div class="ct"><span class="cf" style="--w:94%;--d:400ms"></span></div><span>94%</span></div>
+          <div class="crow"><span>R</span><div class="ct"><span class="cf" style="--w:4%;--d:600ms"></span></div><span>4%</span></div>
+          <div class="crow"><span>H</span><div class="ct"><span class="cf" style="--w:2%;--d:800ms"></span></div><span>2%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="s-foot" data-rise style="--d:380ms">
+      <span class="chip">reading handwriting (OCR)</span>
+      <span class="chip">recognising who is speaking</span>
+      <span class="chip">fingerprint / face identification</span>
+    </div>
+  </div>
+</section>
+
+<!-- 22 · FORECASTING + IMAGE PROCESSING -->
+<section class="slide" id="s22" data-name="Forecasting & Images" aria-label="Forecasting and image processing">
+  <div class="inner">
+    <header class="s-head">
+      <div class="kicker" data-rise>SEC 17 · APPLICATIONS</div>
+      <h2 class="s-title" data-rise style="--d:80ms">Forecasting <em>&amp;</em> Image Processing</h2>
+    </header>
+    <div class="split2">
+      <div class="glass card" data-rise style="--d:180ms">
+        <h3><span class="tag">FORECASTING</span>Predicting the future from the past</h3>
+        <svg viewBox="0 0 520 250">
+          <path class="axis" d="M 50 18 V 208 H 492"/>
+          <g class="gridln"><path d="M 50 66 H 492"/><path d="M 50 114 H 492"/><path d="M 50 162 H 492"/></g>
+          <line class="nowln" x1="320" y1="18" x2="320" y2="208"/>
+          <text class="lbl2" x="320" y="12" text-anchor="middle">NOW</text>
+          <text class="lbl2" x="72" y="34" text-anchor="start">VALUE</text>
+          <text class="lbl2" x="478" y="230" text-anchor="end">TIME →</text>
+          <path class="hist" d="M 70 178 L 120 158 L 170 170 L 220 126 L 270 138 L 320 96"/>
+          <g class="hdots"><circle cx="70" cy="178" r="3.4"/><circle cx="120" cy="158" r="3.4"/><circle cx="170" cy="170" r="3.4"/><circle cx="220" cy="126" r="3.4"/><circle cx="270" cy="138" r="3.4"/><circle cx="320" cy="96" r="3.4"/></g>
+          <path id="fcPath" class="fc" d="M 320 96 L 370 82 L 420 52 L 470 38"/>
+          <text class="lbl2 lblv" x="404" y="112" text-anchor="middle">FORECAST</text>
+        </svg>
+        <div class="flow">
+          <div class="fstep"><b>HISTORICAL DATA</b><span>past values</span></div><svg class="varrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          <div class="fstep cy"><b>ANN</b><span>learns how values change over time</span></div><svg class="varrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          <div class="fstep vi"><b>FUTURE VALUES</b><span>predicted next values</span></div>
+        </div>
+      </div>
+      <div class="glass card" data-rise style="--d:320ms">
+        <h3><span class="tag">IMAGE PROCESSING</span>From pixels to decisions</h3>
+        <div class="amflow">
+          <div class="amcell" style="padding:8px 10px"><h5>IMAGE</h5><div id="ipGrid"></div></div>
+          <svg class="varrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          <div class="amcell" style="padding:8px 10px"><h5>FEATURES</h5><div id="ipBars"></div></div>
+          <svg class="varrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          <div class="amcell" style="padding:8px 10px"><h5>ANN</h5><div id="ipNet"></div></div>
+        </div>
+        <div class="flow">
+          <div class="fstep bl"><b>RESULT</b><span>CLASS 'Z' · e.g. 97%</span></div>
+        </div>
+        <span class="chip">removing noise · outlining objects · medical scans</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 24 · FINAL TAKEAWAYS -->
+<section class="slide" id="s24" data-name="Takeaways" aria-label="Final takeaways">
+  <div class="inner">
+    <header class="s-head">
+      <div class="kicker" data-rise>SEC 18 · CLOSING</div>
+      <h2 class="s-title" data-rise style="--d:80ms">What We <em>Learned</em></h2>
+    </header>
+    <div class="tks">
+      <div class="glass tk" data-rise style="--d:180ms"><i>01</i><p>A neuron is just arithmetic — <b>multiply inputs by weights, add them up, add a bias, then decide</b>: y = f(Σwᵢxᵢ + b).</p></div>
+      <div class="glass tk" data-rise style="--d:270ms"><i>02</i><p><b>Learning means changing weights</b> — experience gets stored as numbers.</p></div>
+      <div class="glass tk" data-rise style="--d:360ms"><i>03</i><p>The kind of feedback decides the learning type — <b>supervised, unsupervised or reinforcement</b>.</p></div>
+      <div class="glass tk" data-rise style="--d:450ms"><i>04</i><p>The <b>perceptron learns from its mistakes</b>; the <b>delta rule</b> makes the fix bigger when the mistake is bigger.</p></div>
+      <div class="glass tk" data-rise style="--d:540ms"><i>05</i><p><b>Backpropagation sends the error backward</b>, so multilayer networks can learn.</p></div>
+      <div class="glass tk" data-rise style="--d:630ms"><i>06</i><p>A network can act as a memory — <b>Hopfield networks recall whole patterns</b> from partial clues.</p></div>
+    </div>
+    <div class="closing" data-rise style="--d:760ms">
+      <p class="cl-line">From biological inspiration to computational intelligence.</p>
+      <div class="rule"></div>
+      <div class="ty">THANK YOU</div>
+      <p class="ty-sub">GROUP 12 · SOFT COMPUTING · UNIT IV · ARTIFICIAL NEURAL NETWORKS</p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- control bar -->
+<footer class="hud-ctl" role="toolbar" aria-label="Presentation controls">
+  <button id="btnPrev" class="cbtn" aria-label="Previous section"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <div class="c-count" aria-live="polite"><span id="ctlIdx">01</span><span class="c-sep">/</span><span id="ctlTotal">18</span></div>
+  <button id="btnNext" class="cbtn" aria-label="Next section"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+  <span class="c-div"></span>
+  <button id="btnNav" class="cbtn wide" aria-label="Open section navigator"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><em>SECTIONS</em></button>
+  <button id="btnFS" class="cbtn" aria-label="Toggle fullscreen"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+</footer>
+
+<!-- team popup -->
+<div class="grp-ov" id="grpOverlay" aria-hidden="true">
+  <div class="grp-panel" role="dialog" aria-modal="true" aria-labelledby="grpTitle">
+    <div class="grp-head">
+      <div><span class="grp-kick">GROUP 12 · SOFT COMPUTING</span><h3 id="grpTitle">Meet the Team</h3></div>
+      <button id="grpClose" class="cbtn" aria-label="Close team popup"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="grp-sub"><span>4 MEMBERS</span><i></i><span>UNIT IV · ARTIFICIAL NEURAL NETWORKS</span></div>
+    <ol class="grp-list" id="grpList"></ol>
+    <div class="grp-foot"><kbd>ESC</kbd> CLOSE</div>
+  </div>
+</div>
+
+<!-- section navigator overlay -->
+<div class="nav-ov" id="navOverlay" aria-hidden="true">
+  <div class="nav-panel" role="dialog" aria-modal="true" aria-label="All sections">
+    <div class="nav-head">
+      <div class="nh-l"><span class="nh-title">SECTIONS</span><span class="nh-count" id="navCount"></span></div>
+      <div class="nh-r"><span class="nh-group"><i></i>GROUP 12 · SOFT COMPUTING</span>
+        <button id="navClose" class="cbtn" aria-label="Close navigator"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    </div>
+    <ol class="nav-list" id="navList"></ol>
+    <div class="nav-foot"><span><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> MOVE</span><span><kbd>ENTER</kbd> OPEN</span><span><kbd>ESC</kbd> CLOSE</span><span><kbd>F</kbd> FULLSCREEN</span></div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+/* ============================================================
+   PRESENTATION LOGIC — helpers
+============================================================ */
+const $  = (s,r)=> (r||document).querySelector(s);
+const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
+const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const NS = 'http://www.w3.org/2000/svg';
+const pad = n => String(n).padStart(2,'0');
+
+function svgEl(t,a){ const e=document.createElementNS(NS,t); if(a) for(const k in a) e.setAttribute(k,a[k]); return e; }
+function txt(x,y,str,cls,anchor){ const t=svgEl('text',{x:x,y:y,'text-anchor':anchor||'middle','class':cls||'lbl2'}); t.textContent=str; return t; }
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];} return a; }
+function combineFX(list){ return {
+  start(){ list.forEach(f=> f && f.start && f.start()); },
+  stop(){  list.forEach(f=> f && f.stop  && f.stop());  } }; }
+
+/* prime stroke-draw lengths for .draw / .mapline elements */
+function primeDraws(){
+  $$('.mapline, .draw').forEach(p=>{
+    try{ p.style.setProperty('--len', Math.ceil(p.getTotalLength())+2); }catch(e){}
+  });
+}
+
+/* point traveler along an SVG path */
+function traveler(path, dot, o){
+  o = o||{};
+  const dur=o.dur||3000, delay=o.delay||0, hold=o.hold||0, rev=!!o.reverse, loop=o.loop!==false;
+  let raf=0, run=false, t0=0;
+  const L = (function(){ try{ return path.getTotalLength(); }catch(e){ return 100; } })();
+  const ez = p => p; /* linear by default */
+  function set(p){ const pt = path.getPointAtLength((rev?1-p:p)*L);
+    dot.setAttribute('transform','translate('+pt.x.toFixed(1)+','+pt.y.toFixed(1)+')'); }
+  function frame(now){
+    if(!t0) t0=now;
+    const e = now - t0 - delay;
+    if(e < 0){ dot.style.opacity = 0; raf=requestAnimationFrame(frame); return; }
+    const per = dur + hold;
+    if(!loop && e >= dur){ set(1); run=false; return; }
+    dot.style.opacity = 1;
+    set((e % per)/dur);
+    raf = requestAnimationFrame(frame);
+  }
+  return {
+    start(){ if(run) return; run=true; t0=0;
+      if(REDUCED){ dot.style.opacity=0; return; }
+      raf=requestAnimationFrame(frame); },
+    stop(){ run=false; cancelAnimationFrame(raf); dot.style.opacity=0; }
+  };
+}
+function makeDot(svg, cls, r, fill){
+  const g=svgEl('g',{'class':cls||'pdot'}); const c=svgEl('circle',{r:r||4}); if(fill) c.setAttribute('fill',fill);
+  g.appendChild(c); svg.appendChild(g); return g;
+}
+
+/* ============================================================
+   DIAGRAM BUILDERS
+============================================================ */
+function buildNetwork(mount, opt){
+  const layers=opt.layers, w=opt.w||900, h=opt.h||420;
+  const top=opt.top!==undefined?opt.top:64, bottom=opt.bottom!==undefined?opt.bottom:56, R=opt.nodeR||13;
+  const svg=svgEl('svg',{viewBox:'0 0 '+w+' '+h}); svg.classList.add('net');
+  const xs = layers.map((_,i)=> 90 + i*(w-180)/(layers.length-1));
+  const gE=svgEl('g'), gN=svgEl('g'); svg.appendChild(gE); svg.appendChild(gN);
+  const nodes=[], egroups=[];
+  layers.forEach(function(n,li){
+    const col=[];
+    for(let j=0;j<n;j++){
+      const y = n===1 ? h/2 : top + j*(h-top-bottom)/(n-1);
+      const c=svgEl('circle',{cx:xs[li],cy:y,r:R,'class':'nn l'+Math.min(li,3)});
+      gN.appendChild(c); col.push({x:xs[li],y:y,c:c});
+    }
+    nodes.push(col);
+  });
+  var edgesByLayer={}, edges=[];
+  for(let li=0;li<layers.length-1;li++){
+    const g=svgEl('g',{'class':'egroup'}); gE.appendChild(g); egroups.push(g);
+    nodes[li].forEach(function(a){ nodes[li+1].forEach(function(b){
+      const p=svgEl('path',{d:'M '+a.x+' '+a.y+' L '+b.x+' '+b.y,'class':'edge'});
+      g.appendChild(p);
+      (edgesOf(li)).push({p:p,g:li,a:a,b:b});
+    });});
+    function edgesOf(l){ /* lazily attach array */ return edgesByLayer[l] || (edgesByLayer[l]=[]); }
+  }
+  /* flatten in layer order */
+  edges = []; layers.forEach(function(_,li){ if(edgesByLayer[li]) edges.push.apply(edges, edgesByLayer[li]); });
+  edges.forEach(function(e,gi){ e.k = gi; });
+  (opt.labels||[]).forEach(function(s,i){ if(s) svg.appendChild(txt(xs[i],34,s,'lbl')); });
+  if(opt.leftLabels)  opt.leftLabels.forEach(function(s,j){ if(nodes[0][j]) svg.appendChild(txt(nodes[0][j].x-26,nodes[0][j].y+4,s,'ngl','end')); });
+  if(opt.rightLabels){ var last=nodes.length-1; opt.rightLabels.forEach(function(s,j){ if(nodes[last][j]) svg.appendChild(txt(nodes[last][j].x+26,nodes[last][j].y+4,s,'ngl','start')); }); }
+  const m = typeof mount==='string' ? document.getElementById(mount) : mount;
+  m.appendChild(svg);
+  return {svg:svg,nodes:nodes,egroups:egroups,edges:edges,xs:xs};
+}
+
+/* flowing pulses through a layered network */
+function networkFlow(net, opt){
+  opt=opt||{};
+  const period=opt.period||3400, segDur=opt.segDur||900, layerDelay=opt.layerDelay||1050, color=opt.color||'#59e2ff';
+  const dots = net.edges.map(function(){ return makeDot(net.svg,'pdot',3.6,color); });
+  let raf=0, run=false;
+  function frame(now){
+    const t = now % period;
+    net.edges.forEach(function(e,i){
+      const start = 200 + e.g*layerDelay + e.k*40;
+      const p = (t-start)/segDur;
+      if(p<0 || p>1){ dots[i].style.opacity=0; return; }
+      dots[i].style.opacity=1;
+      const pt = e.p.getPointAtLength(p*e.p.getTotalLength());
+      dots[i].setAttribute('transform','translate('+pt.x.toFixed(1)+','+pt.y.toFixed(1)+')');
+    });
+    raf = requestAnimationFrame(frame);
+  }
+  return {
+    start(){ if(run) return; run=true;
+      if(REDUCED){ dots.forEach(function(d){ d.style.opacity=0; }); return; }
+      raf=requestAnimationFrame(frame); },
+    stop(){ run=false; cancelAnimationFrame(raf); dots.forEach(function(d){ d.style.opacity=0; }); }
+  };
+}
+
+/* ============================================================
+   DECK ENGINE
+============================================================ */
+const deck = $('#deck'), slides = $$('.slide'), N = slides.length;
+let current = -1, lock = 0, navOpen = false, grpOpen = false;
+const FX = {}; /* index -> {start,stop} */
+const names = slides.map(function(s){ return s.dataset.name || 'Section'; });
+
+function setActive(i){
+  if(current === i) return;
+  if(current >= 0){
+    slides[current].classList.remove('active');
+    slides[current].inert = true;
+    if(FX[slides[current].id]) FX[slides[current].id].stop();
+  }
+  current = i;
+  slides[i].classList.add('active');
+  slides[i].inert = false;
+  if(FX[slides[i].id]) FX[slides[i].id].start();
+}
+function syncHUD(i){
+  $('#ctlIdx').textContent = pad(i+1);
+  $('#hudIdx').textContent = pad(i+1);
+  $('#hudName').textContent = names[i];
+  $('#progFill').style.width = ((i+1)/N*100)+'%';
+  $$('#rail button').forEach(function(b,j){ b.classList.toggle('on', j===i); });
+  $$('#navList li').forEach(function(li,j){ li.classList.toggle('on', j===i); });
+}
+function goTo(i, force){
+  i = Math.max(0, Math.min(N-1, i));
+  const now = performance.now();
+  if(!force && now < lock) return;
+  lock = now + 950;
+  setActive(i); syncHUD(i);
+  deck.scrollTo({ top: slides[i].offsetTop, behavior: REDUCED ? 'auto' : 'smooth' });
+}
+function indexFromScroll(){
+  const mid = deck.scrollTop + deck.clientHeight/2;
+  let best=0, bd=Infinity;
+  slides.forEach(function(s,i){
+    const c = s.offsetTop + s.offsetHeight/2, d = Math.abs(c-mid);
+    if(d<bd){ bd=d; best=i; }
+  });
+  return best;
+}
+/* wheel: one gesture = one section */
+deck.addEventListener('wheel', function(e){
+  if(navOpen || grpOpen) return;
+  const now = performance.now();
+  if(now < lock){ e.preventDefault(); lock = Math.max(lock, now+220); return; }
+  if(Math.abs(e.deltaY) < 6) return;
+  const dir = e.deltaY > 0 ? 1 : -1;
+  const s = slides[current];
+  const atStart = deck.scrollTop <= s.offsetTop + 2;
+  const atEnd   = deck.scrollTop + deck.clientHeight >= s.offsetTop + s.offsetHeight - 2;
+  if(dir>0 && atEnd && current < N-1){ e.preventDefault(); goTo(current+1, true); }
+  else if(dir<0 && atStart && current > 0){ e.preventDefault(); goTo(current-1, true); }
+}, {passive:false});
+
+/* keyboard */
+window.addEventListener('keydown', function(e){
+  if(grpOpen){ if(e.key==='Escape') closeGrp(); return; }
+  if(e.target && e.target.id==='grpBtn' && (e.key===' '||e.key==='Enter')) return;
+  if(e.key==='f' || e.key==='F'){ toggleFS(); return; }
+  if(e.key==='Escape'){ if(navOpen) closeNav(); return; }
+  if(navOpen){ navKeys(e); return; }
+  switch(e.key){
+    case 'ArrowDown': case 'ArrowRight': case 'PageDown': case ' ': e.preventDefault(); goTo(current+1); break;
+    case 'ArrowUp':   case 'ArrowLeft':  case 'PageUp':             e.preventDefault(); goTo(current-1); break;
+    case 'Home': e.preventDefault(); goTo(0,true); break;
+    case 'End':  e.preventDefault(); goTo(N-1,true); break;
+  }
+});
+/* scroll-derived active tracking (manual drag / mobile) */
+let sTick=false;
+deck.addEventListener('scroll', function(){
+  if(sTick) return; sTick=true;
+  requestAnimationFrame(function(){ sTick=false;
+    if(performance.now() < lock) return;
+    const i = indexFromScroll();
+    if(i !== current){ setActive(i); syncHUD(i); }
+  });
+},{passive:true});
+/* buttons */
+ $('#btnPrev').addEventListener('click', function(){ this.blur(); goTo(current-1, true); });
+ $('#btnNext').addEventListener('click', function(){ this.blur(); goTo(current+1, true); });
+/* rail dots */
+const rail = $('#rail');
+names.forEach(function(nm,i){
+  const b=document.createElement('button');
+  b.setAttribute('aria-label','Section '+pad(i+1)+' — '+nm);
+  b.addEventListener('click', function(){ this.blur(); goTo(i,true); });
+  rail.appendChild(b);
+});
+/* navigator overlay */
+const navOverlay = $('#navOverlay'), navList = $('#navList');
+const tags = slides.map(function(s){
+  const k = s.querySelector('.kicker');
+  if(!k) return 'INTRO';
+  return (k.textContent.split('·')[1] || '').trim();
+});
+$('#navCount').textContent = N + ' slides';
+names.forEach(function(nm,i){
+  const li=document.createElement('li'); li.tabIndex=0; li.style.setProperty('--i', i);
+  li.innerHTML='<span class="nn">'+pad(i+1)+'</span><span class="nt"><b>'+nm+'</b><small>'+tags[i]+'</small></span><span class="now">NOW</span>';
+  const go=function(){ goTo(i,true); closeNav(); };
+  li.addEventListener('click', go);
+  li.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.stopPropagation(); go(); } });
+  navList.appendChild(li);
+});
+function openNav(){
+  navOpen=true; navOverlay.classList.add('open'); navOverlay.setAttribute('aria-hidden','false');
+  setTimeout(function(){ const it=$$('#navList li')[Math.max(0,current)]; if(it) it.focus({preventScroll:false}); }, 40);
+}
+function closeNav(){
+  navOpen=false; navOverlay.classList.remove('open'); navOverlay.setAttribute('aria-hidden','true');
+  if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
+}
+function navKeys(e){
+  const items=$$('#navList li'); let idx=items.indexOf(document.activeElement); if(idx<0) idx=Math.max(0,current);
+  const cols=getComputedStyle(navList).gridTemplateColumns.split(' ').length||1;
+  let n=idx;
+  switch(e.key){
+    case 'ArrowRight': n=idx+1; break; case 'ArrowLeft': n=idx-1; break;
+    case 'ArrowDown': n=idx+cols; break; case 'ArrowUp': n=idx-cols; break;
+    case 'Home': n=0; break; case 'End': n=items.length-1; break;
+    case 'Enter': e.preventDefault(); goTo(idx,true); closeNav(); return;
+    default: return;
+  }
+  e.preventDefault();
+  n=Math.max(0,Math.min(items.length-1,n)); items[n].focus();
+}
+/* team popup */
+const grpOverlay=$('#grpOverlay'), grpList=$('#grpList');
+const TEAM=[['Saurabh Raj Shekhar','2024UCD2177'],['Gaurav Kumar','2024UCD2114'],['Sumit Gupta','2024UCD2142'],['Pradyuman','2024UCD2124']];
+TEAM.forEach(function(m,i){
+  const ini=m[0].split(' ').map(function(w){return w[0];}).slice(0,2).join('').toUpperCase();
+  const li=document.createElement('li'); li.style.setProperty('--i',i);
+  li.innerHTML='<span class="av av'+(i%3)+'">'+(ini.length<2?m[0].slice(0,2).toUpperCase():ini)+'</span>'+
+    '<span class="gm"><small>MEMBER '+pad(i+1)+'</small><b>'+m[0]+'</b><em>ROLL NO. <strong>'+m[1]+'</strong></em></span>';
+  grpList.appendChild(li);
+});
+function openGrp(){ grpOpen=true; grpOverlay.classList.add('open'); grpOverlay.setAttribute('aria-hidden','false'); setTimeout(function(){ $('#grpClose').focus(); },40); }
+function closeGrp(){ grpOpen=false; grpOverlay.classList.remove('open'); grpOverlay.setAttribute('aria-hidden','true'); const b=$('#grpBtn'); if(b) b.blur(); }
+$('#grpBtn').addEventListener('click', function(e){ e.stopPropagation(); openGrp(); });
+$('#grpClose').addEventListener('click', closeGrp);
+grpOverlay.addEventListener('click', function(e){ if(e.target===grpOverlay) closeGrp(); });
+$('#btnNav').addEventListener('click', function(){ this.blur(); navOpen? closeNav(): openNav(); });
+ $('#navClose').addEventListener('click', function(){ this.blur(); closeNav(); });
+navOverlay.addEventListener('click', function(e){ if(e.target===navOverlay) closeNav(); });
+/* fullscreen */
+function toggleFS(){
+  if(document.fullscreenElement){ document.exitFullscreen().catch(function(){}); }
+  else{ document.documentElement.requestFullscreen().catch(function(){}); }
+}
+ $('#btnFS').addEventListener('click', function(){ this.blur(); toggleFS(); });
+document.addEventListener('fullscreenchange', function(){
+  $('#btnFS').setAttribute('aria-pressed', !!document.fullscreenElement);
+});
+ $('#ctlTotal').textContent = N;
+window.addEventListener('resize', function(){
+  if(current>=0) deck.scrollTo(0, slides[current].offsetTop);
+});
+
+/* ============================================================
+   SLIDE-SPECIFIC DIAGRAMS & ANIMATIONS
+============================================================ */
+/* ---- 03 · biological neuron pulses ---- */
+(function(){
+  const svg=$('#bioSvg'); if(!svg) return;
+  const d1=makeDot(svg,'pdot lg',5,'#9fecff');
+  const d2=makeDot(svg,'pdot lg',5,'#9fecff');
+  FX["s03"]=combineFX([
+    traveler($('#bp1'), d1, {dur:4200, delay:0}),
+    traveler($('#bp2'), d2, {dur:4200, delay:2100})
+  ]);
+})();
+
+/* ---- 04 · mapping travelers ---- */
+(function(){
+  const svg=$('#mapSvg'); if(!svg) return;
+  const lines=$$('.mapline', svg);
+  const fxs=lines.map(function(p,i){ return traveler(p, makeDot(svg,'pdot',4,'#9fecff'), {dur:2200, delay:500+i*380, hold:900}); });
+  FX["s04"]=combineFX(fxs);
+})();
+
+/* ---- 06 · interactive neuron ---- */
+(function(){
+  const svg=$('#neuSvg'); if(!svg) return;
+  const info=$('#neuronInfo');
+  const DEFAULT='hover a component — its role appears here';
+  svg.addEventListener('mouseover', function(e){
+    const g=e.target.closest('[data-info]');
+    if(g){ info.textContent=g.getAttribute('data-info'); info.classList.add('hot'); }
+  });
+  svg.addEventListener('mouseout', function(e){
+    if(e.target.closest('[data-info]')){ info.textContent=DEFAULT; info.classList.remove('hot'); }
+  });
+  const X=[1,0,1,0.5];
+  const WVALS=[-0.5,-0.25,0,0.25,0.5,0.75,1];
+  const BVALS=[-0.5,-0.25,0,0.25,0.5];
+  const widx=[4,5,1,3]; let bidx=3;
+  const wv=[$('#w0v'),$('#w1v'),$('#w2v'),$('#w3v')];
+  const edges=[$('#ne0'),$('#ne1'),$('#ne2'),$('#ne3')];
+  function refresh(){
+    let net=0;
+    for(let i=0;i<4;i++){
+      const w=WVALS[widx[i]]; net += w*X[i];
+      wv[i].textContent=(w<0?'−':'')+Math.abs(w).toFixed(2);
+      edges[i].style.stroke = w<0 ? 'rgba(183,156,255,.55)' : 'rgba(89,226,255,.5)';
+      edges[i].style.strokeWidth = (1 + Math.abs(w)*2.6).toFixed(2);
+    }
+    net += BVALS[bidx];
+    $('#bv').textContent=(BVALS[bidx]<0?'−':'')+Math.abs(BVALS[bidx]).toFixed(2);
+    const be=$('#neb');
+    be.style.stroke = BVALS[bidx]<0 ? 'rgba(183,156,255,.55)' : 'rgba(89,226,255,.5)';
+    const y=1/(1+Math.exp(-net));
+    $('#rNet').textContent=net.toFixed(2).replace('-','−');
+    $('#rY').textContent=y.toFixed(2);
+    $('#yv').textContent=y.toFixed(2);
+  }
+  $$('.wgrp', svg).forEach(function(g){
+    g.addEventListener('click', function(){
+      const i=+g.getAttribute('data-w');
+      widx[i]=(widx[i]+1)%WVALS.length; refresh();
+    });
+  });
+  $('.bgrp', svg).addEventListener('click', function(){
+    bidx=(bidx+1)%BVALS.length; refresh();
+  });
+  refresh();
+})();
+
+/* ---- 07 · ANN architecture ---- */
+(function(){
+  const m=$('#annmount'); if(!m) return;
+  const net=buildNetwork(m,{layers:[4,5,3],w:900,h:400,top:70,bottom:60,labels:['INPUT LAYER','HIDDEN LAYER','OUTPUT LAYER'],
+    leftLabels:['x₁','x₂','x₃','x₄'], rightLabels:['o₁','o₂','o₃']});
+  /* highlight one edge as "learned weight" */
+  const e=net.edges.find(function(x){ return x.g===0 && x.a===net.nodes[0][1] && x.b===net.nodes[1][2]; });
+  if(e){ e.p.classList.add('wedge');
+    const L=e.p.getTotalLength(), pt=e.p.getPointAtLength(L/2);
+    net.svg.appendChild(txt(pt.x, pt.y-11,'wᵢⱼ','val'));
+    net.svg.appendChild(txt(pt.x, pt.y+22,'learned weight','lbl2'));
+  }
+  FX["s07"]=networkFlow(net,{period:3400,segDur:900,layerDelay:1050});
+})();
+
+/* ---- 14 · gradient-descent bowl ---- */
+(function(){
+  const svg=$('#bowlSvg'); if(!svg) return;
+  FX["s14"]=traveler($('#bowlPath'), makeDot(svg,'bowlball',9), {dur:3000, delay:600, hold:1800});
+})();
+
+/* ---- 15 · backpropagation sequence (centerpiece) ---- */
+(function(){
+  const m=$('#bpmount'); if(!m) return;
+  const net=buildNetwork(m,{layers:[3,4,2],w:940,h:430,top:70,bottom:60,nodeR:16,
+    labels:['INPUT LAYER','HIDDEN LAYER','OUTPUT LAYER'],
+    leftLabels:['x₁','x₂','x₃'], rightLabels:['ŷ₁','ŷ₂']});
+  const dots=net.edges.map(function(){ return makeDot(net.svg,'bpdot',4.2); });
+  const titles=['FORWARD PASS','BACKWARD PASS','WEIGHT UPDATE'];
+  const subs=['data flows forward and the network makes a prediction ŷ',
+              'the output error is sent backward, layer by layer, to blame each weight (δ)',
+              'each weight takes a small step to reduce the error — wᵢⱼ ← wᵢⱼ − η · ∂E/∂wᵢⱼ'];
+  const chips=$$('#s15 .phchip'), badge=$('#phTitle'), sub=$('#phSub');
+  const T=9600; let raf=0, run=false, lastPh=-1;
+  function setPhase(k){
+    if(k===lastPh) return; lastPh=k;
+    badge.textContent=titles[k]; badge.setAttribute('data-ph',k);
+    sub.textContent=subs[k];
+    chips.forEach(function(c,i){ c.classList.toggle('on', i===k); });
+    net.egroups.forEach(function(g){ g.classList.toggle('upd', k===2); });
+  }
+  function frame(now){
+    const t=now%T;
+    const ph = t<3400?0 : t<7000?1 : 2;
+    setPhase(ph);
+    net.edges.forEach(function(e,i){
+      const d=dots[i];
+      if(ph===2){ d.style.opacity=0; return; }
+      let start, rev=false;
+      if(ph===0){ start = 250 + e.g*1500 + e.k*40; }
+      else{ const gi=1-e.g; start = 3400+350+gi*1500 + e.k*40; rev=true; }
+      const p=(t-start)/950;
+      if(p<0||p>1){ d.style.opacity=0; return; }
+      d.style.opacity=1;
+      d.firstChild.setAttribute('fill', ph===0?'#59e2ff':'#b79cff');
+      const L=e.p.getTotalLength();
+      const pt=e.p.getPointAtLength((rev?1-p:p)*L);
+      d.setAttribute('transform','translate('+pt.x.toFixed(1)+','+pt.y.toFixed(1)+')');
+    });
+    raf=requestAnimationFrame(frame);
+  }
+  FX["s15"]={
+    start(){ if(run) return; run=true;
+      if(REDUCED){ setPhase(0); dots.forEach(function(d){ d.style.opacity=0; }); return; }
+      raf=requestAnimationFrame(frame); },
+    stop(){ run=false; cancelAnimationFrame(raf); setPhase(0);
+      dots.forEach(function(d){ d.style.opacity=0; });
+      net.egroups.forEach(function(g){ g.classList.remove('upd'); }); }
+  };
+})();
+
+/* ---- 17 · MLP ---- */
+(function(){
+  const m=$('#mlpmount'); if(!m) return;
+  const net=buildNetwork(m,{layers:[3,4,4,2],w:940,h:380,top:66,bottom:56,
+    labels:['INPUT','HIDDEN 1','HIDDEN 2','OUTPUT']});
+  FX["s17"]=networkFlow(net,{period:5200,segDur:1000,layerDelay:1150});
+})();
+
+/* ---- 18 · Hopfield network ---- */
+(function(){
+  const m=$('#hopmount'); if(!m) return;
+  const Nn=7, pat=[1,-1,1,1,-1,-1,1];
+  const cx=250,cy=235,R=158;
+  const svg=svgEl('svg',{viewBox:'0 0 500 470', style:'max-height:40vh'}); m.appendChild(svg);
+  const pos=[]; for(let i=0;i<Nn;i++){ const a=-Math.PI/2+i*2*Math.PI/Nn;
+    pos.push({x:cx+R*Math.cos(a), y:cy+R*Math.sin(a)}); }
+  const chords=[];
+  for(let i=0;i<Nn;i++) for(let j=i+1;j<Nn;j++){
+    const p=svgEl('path',{d:'M '+pos[i].x.toFixed(1)+' '+pos[i].y.toFixed(1)+' L '+pos[j].x.toFixed(1)+' '+pos[j].y.toFixed(1),'class':'hedge'});
+    svg.appendChild(p); chords.push({el:p,i:i,j:j});
+  }
+  const nc=[], nt=[];
+  pos.forEach(function(p){
+    const c=svgEl('circle',{cx:p.x,cy:p.y,r:15,'class':'h-node'});
+    const t=txt(p.x,p.y+5,'+','hngl');
+    svg.appendChild(c); svg.appendChild(t); nc.push(c); nt.push(t);
+  });
+  svg.appendChild(txt(cx, cy-8, 'FULLY CONNECTED', 'lbl'));
+  svg.appendChild(txt(cx, cy+12, 'wᵢⱼ = wⱼᵢ', 'lbl2'));
+  svg.appendChild(txt(cx, 460, 'one node updates at a time — energy falls until stable', 'lbl2'));
+  const energyEl=$('#hEnergy'), statusEl=$('#hStatus');
+  let states, order, ptr, nextT, phase, holdUntil, raf=0, run=false;
+  function energy(s){ let E=0; for(let i=0;i<Nn;i++) for(let j=i+1;j<Nn;j++) E -= pat[i]*pat[j]*s[i]*s[j]; return E; }
+  function setState(i,v){ states[i]=v; nc[i].classList.toggle('on', v===1); nt[i].textContent = v===1?'+':'−'; }
+  function chordsUpd(){ chords.forEach(function(c){ c.el.classList.toggle('hot', states[c.i]===1 && states[c.j]===1); }); }
+  function randomInit(){
+    do{ states=[]; for(let i=0;i<Nn;i++) states.push(Math.random()<.5?1:-1); }
+    while(states.every(function(v,i){ return v===pat[i]; }));
+    for(let i=0;i<Nn;i++) setState(i,states[i]);
+    chordsUpd(); order=shuffle([0,1,2,3,4,5,6]); ptr=0;
+    energyEl.textContent='E = '+energy(states); phase='run'; nextT=0;
+    statusEl.textContent='SETTLING — ENERGY DECREASING'; statusEl.classList.remove('cy'); statusEl.classList.add('vi');
+  }
+  function frame(now){
+    if(phase==='run' && now>=nextT){
+      if(ptr<order.length){ const i=order[ptr++]; setState(i,pat[i]); chordsUpd();
+        energyEl.textContent='E = '+energy(states); nextT=now+520; }
+      else{ phase='done'; holdUntil=now+2600;
+        statusEl.textContent='CONVERGED · PATTERN RETRIEVED'; statusEl.classList.remove('vi'); statusEl.classList.add('cy'); }
+    }
+    if(phase==='done' && now>=holdUntil) randomInit();
+    raf=requestAnimationFrame(frame);
+  }
+  FX["s18"]={
+    start(){ if(run) return; run=true; randomInit();
+      if(REDUCED){ for(let i=0;i<Nn;i++) setState(i,pat[i]); chordsUpd();
+        energyEl.textContent='E = '+energy(pat);
+        statusEl.textContent='CONVERGED · PATTERN RETRIEVED'; return; }
+      raf=requestAnimationFrame(frame); },
+    stop(){ run=false; cancelAnimationFrame(raf); }
+  };
+})();
+
+/* ---- 19 · associative memory healing ---- */
+(function(){
+  const A=$('#amA'); if(!A) return;
+  const stored=[0,1,1,1,0, 1,0,0,0,1, 1,1,1,1,1, 1,0,0,0,1, 1,0,0,0,1];
+  const flips=[0,7,17,21,13];
+  const noisy=stored.slice(); flips.forEach(function(i){ noisy[i]=noisy[i]?0:1; });
+  function grid(mount, pattern, cls){
+    const el=document.createElement('div'); el.className='grid5 '+(cls||'');
+    el.style.setProperty('--gs','104px');
+    const cells=[];
+    for(let i=0;i<25;i++){ const c=document.createElement('span');
+      c.className='gc'+(pattern[i]?' on':''); el.appendChild(c); cells.push(c); }
+    mount.appendChild(el); return cells;
+  }
+  grid(A, stored, 'dim');
+  grid($('#amB'), noisy);
+  const cCells=grid($('#amC'), noisy);
+  /* static mini Hopfield ring icon */
+  (function(){
+    const svg=svgEl('svg',{viewBox:'0 0 120 110', style:'max-height:96px;width:104px'});
+    const pos=[]; for(let i=0;i<7;i++){ const a=-Math.PI/2+i*2*Math.PI/7;
+      pos.push({x:60+38*Math.cos(a), y:55+38*Math.sin(a)}); }
+    for(let i=0;i<7;i++) for(let j=i+1;j<7;j++)
+      svg.appendChild(svgEl('path',{d:'M '+pos[i].x.toFixed(1)+' '+pos[i].y.toFixed(1)+' L '+pos[j].x.toFixed(1)+' '+pos[j].y.toFixed(1),'class':'hedge'}));
+    pos.forEach(function(p){ svg.appendChild(svgEl('circle',{cx:p.x,cy:p.y,r:5.5,'class':'h-node on'})); });
+    $('#amRing').appendChild(svg);
+  })();
+  const T=6400; let raf=0, run=false, base=0;
+  function render(t){
+    const idx = t<1100 ? -1 : Math.min(flips.length, Math.floor((t-1100)/520));
+    for(let i=0;i<25;i++){
+      let on=noisy[i], err=false;
+      if(flips.indexOf(i)>=0){
+        const k=flips.indexOf(i);
+        if(k<idx){ on=!!stored[i]; }
+        else err=true;
+      }
+      cCells[i].classList.toggle('on', !!on);
+      cCells[i].classList.toggle('err', err);
+    }
+    const el=$('#amC').firstChild;
+    if(el) el.classList.toggle('settled', idx>=flips.length && t<6000);
+  }
+  FX["s19"]={
+    start(){ if(run) return; run=true; base=0;
+      if(REDUCED){ render(5000); return; }
+      raf=requestAnimationFrame(function f(now){ if(!base) base=now; render((now-base)%T); raf=requestAnimationFrame(f); }); },
+    stop(){ run=false; cancelAnimationFrame(raf); }
+  };
+})();
+
+/* ---- 21 · pattern recognition pipeline ---- */
+(function(){
+  const G=$('#prGrid'); if(!G) return;
+  const A=[0,1,1,1,0, 1,0,0,0,1, 1,1,1,1,1, 1,0,0,0,1, 1,0,0,0,1];
+  const g=document.createElement('div'); g.className='grid5'; g.style.setProperty('--gs','112px');
+  for(let i=0;i<25;i++){ const c=document.createElement('span'); c.className='gc'+(A[i]?' on':''); g.appendChild(c); }
+  G.appendChild(g);
+  /* feature bars */
+  const bars=document.createElement('div'); bars.className='fbars'; bars.style.width='150px';
+  [42,86,64,30,92,55,74,38].forEach(function(h,i){
+    const s=document.createElement('span'); s.style.setProperty('--h',h+'%'); s.style.setProperty('--d',(300+i*90)+'ms');
+    bars.appendChild(s);
+  });
+  $('#prBars').appendChild(bars);
+  /* mini network + slow pulses */
+  const net=buildNetwork($('#prNet'),{layers:[3,3,2],w:190,h:120,top:16,bottom:14,nodeR:7});
+  FX["s21"]=networkFlow(net,{period:2800,segDur:520,layerDelay:820});
+})();
+
+/* ---- 22 · forecasting dot + image pipeline ---- */
+(function(){
+  const F=$('#fcPath'); if(F) FX["s22"]=traveler(F, makeDot(F.ownerSVGElement,'fcdot',4.5), {dur:2600, delay:600, hold:2200});
+  const IP=$('#ipGrid'); if(!IP) return;
+  const Z=[1,1,1,1,1, 0,0,0,1,0, 0,0,1,0,0, 0,1,0,0,0, 1,1,1,1,1];
+  const g=document.createElement('div'); g.className='grid5'; g.style.setProperty('--gs','84px');
+  for(let i=0;i<25;i++){ const c=document.createElement('span'); c.className='gc'+(Z[i]?' on':''); g.appendChild(c); }
+  IP.appendChild(g);
+  const bars=document.createElement('div'); bars.className='fbars'; bars.style.height='70px'; bars.style.width='110px';
+  [55,80,35,68,90,48].forEach(function(h,i){
+    const s=document.createElement('span'); s.style.setProperty('--h',h+'%'); s.style.setProperty('--d',(250+i*80)+'ms');
+    bars.appendChild(s);
+  });
+  $('#ipBars').appendChild(bars);
+  buildNetwork($('#ipNet'),{layers:[3,3,2],w:150,h:96,top:14,bottom:12,nodeR:6});
+})();
+
+/* ============================================================
+   BACKGROUND — neural constellation canvas
+============================================================ */
+(function(){
+  const cv=$('#bg'), ctx=cv.getContext('2d');
+  const COLORS=['89,226,255','183,156,255','127,179,255'];
+  let W=0,H=0,nodes=[],pulses=[];
+  const mouse={x:.5,y:.5};
+  function sprite(rgb){
+    const s=document.createElement('canvas'); s.width=s.height=64;
+    const c=s.getContext('2d');
+    const g=c.createRadialGradient(32,32,0,32,32,32);
+    g.addColorStop(0,'rgba('+rgb+',.85)'); g.addColorStop(.35,'rgba('+rgb+',.28)'); g.addColorStop(1,'rgba('+rgb+',0)');
+    c.fillStyle=g; c.fillRect(0,0,64,64); return s;
+  }
+  const sprites=COLORS.map(sprite);
+  function resize(){
+    const dpr=Math.min(2, window.devicePixelRatio||1);
+    W=window.innerWidth; H=window.innerHeight;
+    cv.width=W*dpr; cv.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+    const n=Math.round(Math.min(105, W*H/15000));
+    nodes=[];
+    for(let i=0;i<n;i++) nodes.push({
+      x:Math.random()*W, y:Math.random()*H,
+      vx:(Math.random()-.5)*.16, vy:(Math.random()-.5)*.16,
+      r:1.1+Math.random()*1.7, c:Math.random()*3|0 });
+  }
+  function step(){
+    ctx.clearRect(0,0,W,H);
+    const mx=mouse.x*W, my=mouse.y*H;
+    for(let i=0;i<nodes.length;i++){
+      const a=nodes[i];
+      a.x+=a.vx; a.y+=a.vy;
+      if(a.x<-20) a.x=W+20; if(a.x>W+20) a.x=-20;
+      if(a.y<-20) a.y=H+20; if(a.y>H+20) a.y=-20;
+      for(let j=i+1;j<nodes.length;j++){
+        const b=nodes[j], dx=a.x-b.x, dy=a.y-b.y, d=Math.sqrt(dx*dx+dy*dy);
+        if(d<150){
+          ctx.strokeStyle='rgba(146,190,255,'+((1-d/150)*.13).toFixed(3)+')';
+          ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+        }
+      }
+    }
+    nodes.forEach(function(a){
+      const dm=Math.hypot(a.x-mx,a.y-my);
+      const glow = dm<130 ? (1-dm/130) : 0;
+      const s=a.r*9 + glow*14;
+      ctx.drawImage(sprites[a.c], a.x-s/2, a.y-s/2, s, s);
+    });
+    /* occasional signal pulses along a connection */
+    if(pulses.length<7 && Math.random()<.03){
+      const a=nodes[Math.random()*nodes.length|0];
+      let best=null,bd=150;
+      nodes.forEach(function(b){ const d=Math.hypot(a.x-b.x,a.y-b.y); if(d>10&&d<bd){bd=d;best=b;} });
+      if(best) pulses.push({a:a,b:best,t:0});
+    }
+    pulses=pulses.filter(function(p){
+      p.t+=.022; if(p.t>=1) return false;
+      const x=p.a.x+(p.b.x-p.a.x)*p.t, y=p.a.y+(p.b.y-p.a.y)*p.t;
+      const g2=ctx.createRadialGradient(x,y,0,x,y,9);
+      g2.addColorStop(0,'rgba(89,226,255,.9)'); g2.addColorStop(1,'rgba(89,226,255,0)');
+      ctx.fillStyle=g2; ctx.beginPath(); ctx.arc(x,y,9,0,7); ctx.fill();
+      return true;
+    });
+  }
+  window.addEventListener('mousemove', function(e){ mouse.x=e.clientX/W; mouse.y=e.clientY/H; });
+  window.addEventListener('resize', resize);
+  resize();
+  if(REDUCED){ step(); }
+  else{ (function loop(){ step(); requestAnimationFrame(loop); })(); }
+})();
+
+/* cursor glow (fine pointers only) */
+(function(){
+  if(REDUCED || !window.matchMedia('(pointer:fine)').matches) return;
+  const el=$('#cglow'); let tx=innerWidth/2, ty=innerHeight/2, x=tx, y=ty, on=false;
+  window.addEventListener('mousemove', function(e){
+    tx=e.clientX; ty=e.clientY;
+    if(!on){ on=true; el.style.opacity='1'; }
+  });
+  (function lerp(){ x+=(tx-x)*.09; y+=(ty-y)*.09;
+    el.style.transform='translate('+x.toFixed(1)+'px,'+y.toFixed(1)+'px)';
+    requestAnimationFrame(lerp); })();
+})();
+
+
+/* ============================================================
+   FIT — shrink a slide's content just enough to fit the screen
+============================================================ */
+function fitSlides(){
+  const vh = window.innerHeight;
+  slides.forEach(function(s){
+    const inner = s.querySelector('.inner'); if(!inner) return;
+    inner.style.zoom = '';
+    const cs = getComputedStyle(s);
+    const pads = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+    let z = 1;
+    for(let k=0; k<4; k++){
+      const need = s.scrollHeight;
+      if(need <= vh + 1) break;
+      z = Math.max(.66, z * (vh - pads) / (need - pads) * .995);
+      inner.style.zoom = z.toFixed(3);
+    }
+  });
+  if(current>=0) deck.scrollTo(0, slides[current].offsetTop);
+}
+let fitT=0;
+window.addEventListener('resize', function(){ clearTimeout(fitT); fitT=setTimeout(fitSlides,120); });
+
+/* ============================================================
+   INIT
+============================================================ */
+primeDraws();
+if('scrollRestoration' in history) history.scrollRestoration='manual';
+deck.scrollTop=0;
+fitSlides(); if(document.fonts && document.fonts.ready) document.fonts.ready.then(fitSlides);
+setActive(0); syncHUD(0); slides.forEach(function(s,i){ s.inert = i!==0; });
+
+})();
+</script>
+</body>
+</html>
