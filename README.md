@@ -43,7 +43,7 @@ Built with plain HTML, CSS and JavaScript — no libraries, works offline.
 **Locally:**
 
 ```bash
-git clone https://github.com/Zephyrex21/ann-unit4-presentation.git
+git clone https://github.com/Zephyrex21/ann-presentation-soft-computing.git
 cd ann-unit4-presentation
 # just open index.html in any modern browser
 ```
