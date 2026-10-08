@@ -7,7 +7,7 @@
 An interactive 18-slide presentation that explains how a brain cell became a learning machine.
 Built with plain HTML, CSS and JavaScript — no libraries, works offline.
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Open%20Presentation-59e2ff?style=for-the-badge&logo=githubpages&logoColor=white)](https://zephyrex21.github.io/ann-unit4-presentation/)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Open%20Presentation-59e2ff?style=for-the-badge&logo=githubpages&logoColor=white)](https://zephyrex21.github.io/ann-presentation-soft-computing)
 
 ![HTML5](https://img.shields.io/badge/HTML5-e34f26?style=flat-square&logo=html5&logoColor=white)
 ![CSS3](https://img.shields.io/badge/CSS3-1572b6?style=flat-square&logo=css3&logoColor=white)
