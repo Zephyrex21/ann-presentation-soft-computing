@@ -530,7 +530,7 @@ g[data-info]:hover circle,g[data-info]:hover rect{filter:drop-shadow(0 0 7px rgb
 .ph-sub{font-size:13px;color:var(--ink2)}
 .vs-card b{font-size:14.5px}.vs-card span{font-size:13.5px;color:var(--ink2)}
 .vs-mid{color:var(--ink2)}
-.hitem{font-size:16px;color:var(--ink2)}.hitem i{font-size:11px;min-width:96px;text-align:center;align-self:flex-start}
+.hitem{font-size:16px;color:var(--ink2)}.hitem i{font-size:11px}
 .amcell h5{font-size:12px;color:var(--ink2)}
 .cbs .crow,.crow{font-size:12.5px}
 .tk p{font-size:16px;color:var(--ink2)}.tk p b{color:#fff}
@@ -771,7 +771,7 @@ button.hero-group:hover,button.hero-group:focus-visible{transform:translateY(-2p
       </svg>
     </div>
     <div class="s-foot" data-rise style="--d:380ms">
-      <div class="note">When you practise something, the connections between neurons get stronger — that is a key part of how the brain learns. Computers copy this idea using numbers called <b>weights</b>.</div>
+      <div class="note">When you practise something, the connections between neurons get stronger — that is how the brain learns. Computers copy this idea using numbers called <b>weights</b>.</div>
     </div>
   </div>
 </section>
@@ -782,7 +782,7 @@ button.hero-group:hover,button.hero-group:focus-visible{transform:translateY(-2p
     <header class="s-head">
       <div class="kicker" data-rise>SEC 03 · FOUNDATIONS</div>
       <h2 class="s-title" data-rise style="--d:80ms">Nature Inspired the <em>Machine</em></h2>
-      <p class="s-sub" data-rise style="--d:160ms">A computer neuron is a simplified copy of a brain neuron — every part has a matching part.</p>
+      <p class="s-sub" data-rise style="--d:160ms">An artificial neuron is a very simplified model of a brain neuron — each part has a matching part.</p>
     </header>
     <div class="stage" data-rise style="--d:260ms">
       <svg id="mapSvg" viewBox="0 0 1000 512" role="img" aria-label="Mapping from biological neuron parts to artificial neuron parts">
@@ -832,7 +832,7 @@ button.hero-group:hover,button.hero-group:focus-visible{transform:translateY(-2p
       </svg>
     </div>
     <div class="s-foot" data-rise style="--d:420ms">
-      <div class="chip vi">1943 · McCULLOCH &amp; PITTS — proposed the first mathematical model of a neuron: a simple on/off threshold unit</div>
+      <div class="chip vi">1943 · McCULLOCH &amp; PITTS — first modelled a neuron as a simple on/off (threshold) unit</div>
     </div>
   </div>
 </section>
@@ -843,7 +843,7 @@ button.hero-group:hover,button.hero-group:focus-visible{transform:translateY(-2p
     <header class="s-head">
       <div class="kicker" data-rise>SEC 04 · FOUNDATIONS</div>
       <h2 class="s-title" data-rise style="--d:80ms">The <em>Artificial Neuron</em></h2>
-      <p class="s-sub" data-rise style="--d:160ms">Two simple steps: <b>net = Σ wᵢxᵢ + b</b> (add up the weighted inputs), then <b>y = f(net)</b> (decide the output). Hover for each part’s role · click a weight or the bias to change it.</p>
+      <p class="s-sub" data-rise style="--d:160ms">Two simple steps: <b>net = Σ wᵢxᵢ + b</b> (add up the weighted inputs plus the bias), then <b>y = f(net)</b> (decide the output). Hover for each part’s role · click a weight or the bias to change it.</p>
     </header>
     <div class="stage" data-rise style="--d:260ms">
       <svg id="neuSvg" viewBox="0 0 900 430" role="img" aria-label="Interactive artificial neuron diagram">
@@ -914,7 +914,7 @@ button.hero-group:hover,button.hero-group:focus-visible{transform:translateY(-2p
       <span class="chip vi">OUTPUT — gives the answer</span>
     </div>
     <div class="s-foot" data-rise style="--d:460ms">
-      <div class="note">Every connection has a <b>weight wᵢⱼ</b> — what the network knows is stored in these numbers (plus the biases).</div>
+      <div class="note">Every connection has a <b>weight wᵢⱼ</b> — what the network knows is stored in its weights and biases.</div>
     </div>
   </div>
 </section>
@@ -934,7 +934,7 @@ button.hero-group:hover,button.hero-group:focus-visible{transform:translateY(-2p
     <div class="xsteps" data-rise style="--d:420ms;margin-top:16px">
       <div class="glass xstep"><div class="xn">HEBBIAN</div><div class="xv">Δwᵢ = η·xᵢ·y</div><div class="xs">"fire together, wire together" · unsupervised</div></div>
       <div class="glass xstep"><div class="xn">PERCEPTRON</div><div class="xv">Δwᵢ = η·(t − y)·xᵢ</div><div class="xs">learn from mistakes · supervised</div></div>
-      <div class="glass xstep"><div class="xn">DELTA RULE</div><div class="xv">Δwᵢ = η·(t − y)·f′(net)·xᵢ</div><div class="xs">step downhill on the error · supervised · Widrow–Hoff (LMS) when f′ = 1</div></div>
+      <div class="glass xstep"><div class="xn">DELTA RULE</div><div class="xv">Δwᵢ = η·(t − y)·f′(net)·xᵢ</div><div class="xs">step downhill on the error · supervised</div></div>
       <div class="glass xstep"><div class="xn">COMPETITIVE</div><div class="xv">Δw = η·(x − w), winner only</div><div class="xs">only the best-matching neuron learns · unsupervised</div></div>
     </div>
     <div class="legend" data-rise style="--d:460ms">
@@ -1031,7 +1031,7 @@ button.hero-group:hover,button.hero-group:focus-visible{transform:translateY(-2p
           <text class="lbl lblv" x="228" y="200" text-anchor="middle">class −1</text>
           <text class="lbl2" x="188" y="94" text-anchor="middle">w·x + b = 0</text>
         </svg>
-        <span class="chip vi">it can only split data with a straight line → so we need multilayer networks</span>
+        <span class="chip vi">it can only split data with a straight line (or flat plane) → so we need multilayer networks</span>
       </div>
     </div>
   </div>
@@ -1132,7 +1132,7 @@ button.hero-group:hover,button.hero-group:focus-visible{transform:translateY(-2p
       <div class="glass vs-card b"><b>BACKPROPAGATION</b><span>the TRAINING ALGORITHM — how it <b>learns</b>: error backward, weights updated</span></div>
     </div>
     <div class="s-foot" data-rise style="--d:540ms">
-      <span class="chip">a hidden layer with non-linear activation can solve problems no straight line can (e.g. XOR) — a single perceptron can't</span>
+      <span class="chip">with non-linear activations, hidden layers can solve XOR-type problems — a single perceptron can't</span>
     </div>
   </div>
 </section>
@@ -1179,10 +1179,10 @@ button.hero-group:hover,button.hero-group:focus-visible{transform:translateY(-2p
       <div class="glass stepcard" data-rise style="--d:600ms"><span class="sn">05</span><b>Hidden δ</b><span>hidden blame: δⱼ = f′(netⱼ)·Σ δₖwⱼₖ</span></div>
       <div class="glass stepcard" data-rise style="--d:690ms"><span class="sn">06</span><b>Update weights</b><span>Δwᵢⱼ = η·δⱼ·xᵢ  (= −η ∂E/∂wᵢⱼ)</span></div>
       <div class="glass stepcard" data-rise style="--d:780ms"><span class="sn">07</span><b>Repeat</b><span>go through all the examples (one epoch)</span></div>
-      <div class="glass stepcard" data-rise style="--d:870ms"><span class="sn">08</span><b>Stop</b><span>when the error is small enough (or max epochs)</span></div>
+      <div class="glass stepcard" data-rise style="--d:870ms"><span class="sn">08</span><b>Stop</b><span>when the error is small enough or the epoch limit is reached</span></div>
     </div>
     <div class="s-foot" data-rise style="--d:960ms">
-      <span class="chip vi">each layer's blame (δ) is worked out from the layer above it · δ = −∂E/∂net</span>
+      <span class="chip vi">each layer's blame (δ) is worked out from the next layer toward the output · δ = −∂E/∂net</span>
     </div>
   </div>
 </section>
@@ -1205,9 +1205,9 @@ button.hero-group:hover,button.hero-group:focus-visible{transform:translateY(-2p
       </div>
       <div class="hlist" data-rise style="--d:340ms">
         <div class="hitem"><i>RECURRENT</i><span>every neuron is linked to every other neuron (not itself), and each link works both ways equally: wᵢⱼ = wⱼᵢ.</span></div>
-        <div class="hitem"><i>STORAGE</i><span>patterns are stored in the weights using Hebb's rule (neurons that fire together link up) — it can reliably store about 0.14·N patterns (N = number of neurons).</span></div>
+        <div class="hitem"><i>STORAGE</i><span>patterns are stored in the weights using Hebb's rule (neurons that fire together link up) — it can reliably hold about 0.14·N patterns (N = number of neurons).</span></div>
         <div class="hitem"><i>DYNAMICS</i><span>neurons update one at a time, and the network's “energy” keeps dropping until it settles.</span></div>
-        <div class="hitem"><i>RETRIEVAL</i><span>the settled states are the stored memories (a few false ones can appear too) — a noisy input rolls down into the nearest one.</span></div>
+        <div class="hitem"><i>RETRIEVAL</i><span>the settled states ARE the memories — a noisy input rolls down into the nearest one.</span></div>
       </div>
     </div>
   </div>
@@ -1718,7 +1718,7 @@ window.addEventListener('resize', function(){
     const be=$('#neb');
     be.style.stroke = BVALS[bidx]<0 ? 'rgba(183,156,255,.55)' : 'rgba(89,226,255,.5)';
     const y=1/(1+Math.exp(-net));
-    $('#rNet').textContent=net.toFixed(2).replace('-','−');
+    $('#rNet').textContent=net.toFixed(2);
     $('#rY').textContent=y.toFixed(2);
     $('#yv').textContent=y.toFixed(2);
   }
@@ -1845,13 +1845,13 @@ window.addEventListener('resize', function(){
     while(states.every(function(v,i){ return v===pat[i]; }));
     for(let i=0;i<Nn;i++) setState(i,states[i]);
     chordsUpd(); order=shuffle([0,1,2,3,4,5,6]); ptr=0;
-    energyEl.textContent='E = '+energy(states); phase='run'; nextT=0;
+    energyEl.textContent='E = '+String(energy(states)).replace('-','−'); phase='run'; nextT=0;
     statusEl.textContent='SETTLING — ENERGY DECREASING'; statusEl.classList.remove('cy'); statusEl.classList.add('vi');
   }
   function frame(now){
     if(phase==='run' && now>=nextT){
       if(ptr<order.length){ const i=order[ptr++]; setState(i,pat[i]); chordsUpd();
-        energyEl.textContent='E = '+energy(states); nextT=now+520; }
+        energyEl.textContent='E = '+String(energy(states)).replace('-','−'); nextT=now+520; }
       else{ phase='done'; holdUntil=now+2600;
         statusEl.textContent='CONVERGED · PATTERN RETRIEVED'; statusEl.classList.remove('vi'); statusEl.classList.add('cy'); }
     }
@@ -1861,7 +1861,7 @@ window.addEventListener('resize', function(){
   FX["s18"]={
     start(){ if(run) return; run=true; randomInit();
       if(REDUCED){ for(let i=0;i<Nn;i++) setState(i,pat[i]); chordsUpd();
-        energyEl.textContent='E = '+energy(pat);
+        energyEl.textContent='E = '+String(energy(pat)).replace('-','−');
         statusEl.textContent='CONVERGED · PATTERN RETRIEVED'; return; }
       raf=requestAnimationFrame(frame); },
     stop(){ run=false; cancelAnimationFrame(raf); }
@@ -2055,7 +2055,7 @@ function fitSlides(){
     for(let k=0; k<4; k++){
       const need = s.scrollHeight;
       if(need <= vh + 1) break;
-      z = Math.max(.66, z * (vh - pads) / (need - pads) * .995);
+      z = Math.max(.6, z * (vh - pads) / (need - pads) * .995);
       inner.style.zoom = z.toFixed(3);
     }
   });
